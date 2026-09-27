@@ -127,6 +127,16 @@ pub struct Env {
     pub attester: Keypair,
     pub mint_authority: Keypair,
     pub usdc_mint: Pubkey,
+    key_seq: u64,
+}
+
+/// Deterministic test keys: on-chain PDA/ATA bump searches depend on the addresses involved, so
+/// random keys make compute-unit measurements vary from run to run.
+fn seeded_keypair(n: u64) -> Keypair {
+    let mut secret = [0u8; 32];
+    secret[..8].copy_from_slice(b"anyfee:t");
+    secret[8..16].copy_from_slice(&n.to_le_bytes());
+    Keypair::new_from_array(secret)
 }
 
 impl Default for Env {
@@ -148,9 +158,9 @@ impl Env {
         });
         svm.add_program(PROGRAM_ID, &so).unwrap();
 
-        let admin = Keypair::new();
-        let attester = Keypair::new();
-        let mint_authority = Keypair::new();
+        let admin = seeded_keypair(1);
+        let attester = seeded_keypair(2);
+        let mint_authority = seeded_keypair(3);
         svm.airdrop(&admin.pubkey(), 100 * LAMPORTS_PER_SOL)
             .unwrap();
         svm.airdrop(&mint_authority.pubkey(), 10 * LAMPORTS_PER_SOL)
@@ -169,6 +179,7 @@ impl Env {
             attester,
             mint_authority,
             usdc_mint: Pubkey::default(),
+            key_seq: 100,
         };
         env.set_time(T0);
         env.usdc_mint = env.create_mint(USDC_DECIMALS);
@@ -209,8 +220,14 @@ impl Env {
         self.set_time(t);
     }
 
+    /// A fresh deterministic keypair (distinct per call within one `Env`).
+    pub fn next_keypair(&mut self) -> Keypair {
+        self.key_seq += 1;
+        seeded_keypair(self.key_seq)
+    }
+
     pub fn funded_keypair(&mut self, sol: u64) -> Keypair {
-        let kp = Keypair::new();
+        let kp = self.next_keypair();
         self.svm
             .airdrop(&kp.pubkey(), sol * LAMPORTS_PER_SOL)
             .unwrap();
@@ -284,7 +301,7 @@ impl Env {
     // ---------------------------------------------------------------- tokens
 
     pub fn create_mint(&mut self, decimals: u8) -> Pubkey {
-        let mint = Keypair::new();
+        let mint = self.next_keypair();
         let rent = self.rent_min(spl_token::state::Mint::LEN);
         let auth = self.mint_authority.insecure_clone();
         let create = solana_system_interface::instruction::create_account(
