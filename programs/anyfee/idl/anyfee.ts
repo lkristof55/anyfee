@@ -50,7 +50,29 @@ export type Anyfee = {
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "instructionsSysvar",
@@ -98,7 +120,29 @@ export type Anyfee = {
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         }
       ],
       "args": [
@@ -134,7 +178,29 @@ export type Anyfee = {
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "destination",
@@ -192,7 +258,29 @@ export type Anyfee = {
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "usdcMint"
@@ -295,6 +383,28 @@ export type Anyfee = {
       "accounts": [
         {
           "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          },
           "relations": [
             "tip"
           ]
@@ -368,7 +478,29 @@ export type Anyfee = {
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         }
       ],
       "args": [
@@ -418,7 +550,29 @@ export type Anyfee = {
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         }
       ],
       "args": [
@@ -460,7 +614,29 @@ export type Anyfee = {
             "before initialization): it tops up to rent exemption, then allocates and assigns",
             "with the PDA signature. Pre-existing lamports stay in the vault and are claimable."
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -590,6 +766,28 @@ export type Anyfee = {
         {
           "name": "vault",
           "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          },
           "relations": [
             "tip"
           ]
@@ -681,6 +879,28 @@ export type Anyfee = {
         {
           "name": "vault",
           "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          },
           "relations": [
             "tip"
           ]
@@ -980,7 +1200,29 @@ export type Anyfee = {
           "docs": [
             "Must already be initialized (prepend `init_vault` if it is not)."
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "tip",
@@ -1071,7 +1313,29 @@ export type Anyfee = {
           "docs": [
             "Must already be initialized (prepend `init_vault` if it is not)."
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "tip",

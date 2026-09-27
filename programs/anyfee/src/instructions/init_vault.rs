@@ -15,7 +15,7 @@ pub struct InitVault<'info> {
         init,
         payer = payer,
         space = 8 + Vault::INIT_SPACE,
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump
     )]
     pub vault: Account<'info, Vault>,

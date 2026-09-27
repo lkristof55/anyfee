@@ -82,7 +82,7 @@ pub struct TipSol<'info> {
     /// Must already be initialized (prepend `init_vault` if it is not).
     #[account(
         mut,
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -91,7 +91,7 @@ pub struct TipSol<'info> {
         init,
         payer = sender,
         space = 8 + Tip::INIT_SPACE,
-        seeds = [TIP_SEED, vault.key().as_ref(), &vault.tip_count.to_le_bytes()],
+        seeds = [TIP_SEED, vault.key().as_ref(), vault.tip_count.to_le_bytes().as_ref()],
         bump
     )]
     pub tip: Account<'info, Tip>,
@@ -135,7 +135,7 @@ pub struct TipToken<'info> {
     /// Must already be initialized (prepend `init_vault` if it is not).
     #[account(
         mut,
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -144,7 +144,7 @@ pub struct TipToken<'info> {
         init,
         payer = sender,
         space = 8 + Tip::INIT_SPACE,
-        seeds = [TIP_SEED, vault.key().as_ref(), &vault.tip_count.to_le_bytes()],
+        seeds = [TIP_SEED, vault.key().as_ref(), vault.tip_count.to_le_bytes().as_ref()],
         bump
     )]
     pub tip: Account<'info, Tip>,
@@ -175,7 +175,12 @@ pub struct TipToken<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handle_tip_token(ctx: Context<TipToken>, _platform: u8, _id: u64, amount: u64) -> Result<()> {
+pub fn handle_tip_token(
+    ctx: Context<TipToken>,
+    _platform: u8,
+    _id: u64,
+    amount: u64,
+) -> Result<()> {
     check_can_tip(&ctx.accounts.config, &ctx.accounts.vault, amount)?;
 
     token::transfer_checked(

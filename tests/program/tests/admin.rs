@@ -7,8 +7,12 @@ use solana_signer::Signer;
 
 #[test]
 fn m_test_vector_matches_spec() {
-    let program: Pubkey = "BixfaA4JmPvntZvGZwnqhHdoUQvEzZY6ZBMXCLgF3C9M".parse().unwrap();
-    let claimant: Pubkey = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM".parse().unwrap();
+    let program: Pubkey = "BixfaA4JmPvntZvGZwnqhHdoUQvEzZY6ZBMXCLgF3C9M"
+        .parse()
+        .unwrap();
+    let claimant: Pubkey = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
+        .parse()
+        .unwrap();
     let m = anyfee::attestation::bind_message(&program, 2, 1_234_567_890, &claimant, 1_790_500_000);
     assert_eq!(
         hex::encode(m),
@@ -182,7 +186,8 @@ fn pause_blocks_tips_binds_and_finalize_but_not_claims_or_refunds() {
     assert_ok(env.bind_as_attester(&payer, p, id, &claimant.pubkey()));
     let other = env.funded_keypair(1);
     assert_ok(env.bind_as_attester(&payer, p, id, &other.pubkey()));
-    env.transfer_lamports(&sender, &vault_pda(p, id), 5_000_000).unwrap();
+    env.transfer_lamports(&sender, &vault_pda(p, id), 5_000_000)
+        .unwrap();
     assert_ok(env.set_config(&admin, None, None, None, None, Some(true)));
     env.advance(3 * DAY);
     assert_err(env.finalize_rebind(&payer, p, id), AnyfeeError::Paused);

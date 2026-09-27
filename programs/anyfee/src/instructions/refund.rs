@@ -38,7 +38,7 @@ pub struct RefundTip<'info> {
 
     #[account(
         mut,
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -47,7 +47,7 @@ pub struct RefundTip<'info> {
     #[account(
         mut,
         close = sender,
-        seeds = [TIP_SEED, vault.key().as_ref(), &tip_index.to_le_bytes()],
+        seeds = [TIP_SEED, vault.key().as_ref(), tip_index.to_le_bytes().as_ref()],
         bump = tip.bump,
         has_one = vault,
         has_one = sender
@@ -60,7 +60,12 @@ pub struct RefundTip<'info> {
 }
 
 /// Permissionless crank: returns a SOL tip to `tip.sender`.
-pub fn handle_refund_tip(ctx: Context<RefundTip>, platform: u8, id: u64, tip_index: u64) -> Result<()> {
+pub fn handle_refund_tip(
+    ctx: Context<RefundTip>,
+    platform: u8,
+    id: u64,
+    tip_index: u64,
+) -> Result<()> {
     let tip = &ctx.accounts.tip;
     require!(tip.is_sol(), AnyfeeError::WrongTipKind);
     check_refundable(&ctx.accounts.config, &ctx.accounts.vault, tip)?;
@@ -107,7 +112,7 @@ pub struct RefundTipToken<'info> {
 
     #[account(
         mut,
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -116,7 +121,7 @@ pub struct RefundTipToken<'info> {
     #[account(
         mut,
         close = sender,
-        seeds = [TIP_SEED, vault.key().as_ref(), &tip_index.to_le_bytes()],
+        seeds = [TIP_SEED, vault.key().as_ref(), tip_index.to_le_bytes().as_ref()],
         bump = tip.bump,
         has_one = vault,
         has_one = sender
@@ -216,7 +221,7 @@ pub fn handle_refund_tip_token(
 #[instruction(platform: u8, id: u64, tip_index: u64)]
 pub struct CloseTip<'info> {
     #[account(
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -224,7 +229,7 @@ pub struct CloseTip<'info> {
     #[account(
         mut,
         close = sender,
-        seeds = [TIP_SEED, vault.key().as_ref(), &tip_index.to_le_bytes()],
+        seeds = [TIP_SEED, vault.key().as_ref(), tip_index.to_le_bytes().as_ref()],
         bump = tip.bump,
         has_one = vault,
         has_one = sender
@@ -239,7 +244,12 @@ pub struct CloseTip<'info> {
 /// Permissionless crank (addition to spec v0.1): once a claim has consumed a tip
 /// (`tip.epoch < vault.claim_epoch`), the receipt is useless; close it and return its rent to
 /// the sender. Moves no vault funds.
-pub fn handle_close_tip(ctx: Context<CloseTip>, _platform: u8, _id: u64, tip_index: u64) -> Result<()> {
+pub fn handle_close_tip(
+    ctx: Context<CloseTip>,
+    _platform: u8,
+    _id: u64,
+    tip_index: u64,
+) -> Result<()> {
     require!(
         ctx.accounts.tip.epoch < ctx.accounts.vault.claim_epoch,
         AnyfeeError::TipNotConsumed

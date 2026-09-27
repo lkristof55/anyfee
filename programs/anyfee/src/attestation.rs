@@ -45,7 +45,11 @@ pub fn bind_message(
 
 fn read_u16(data: &[u8], at: usize) -> Result<u16> {
     let bytes = data
-        .get(at..at.checked_add(2).ok_or(AnyfeeError::MalformedEd25519Instruction)?)
+        .get(
+            at..at
+                .checked_add(2)
+                .ok_or(AnyfeeError::MalformedEd25519Instruction)?,
+        )
         .ok_or(AnyfeeError::MalformedEd25519Instruction)?;
     Ok(u16::from_le_bytes([bytes[0], bytes[1]]))
 }

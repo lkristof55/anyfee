@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)] // LiteSVM's FailedTransactionMetadata is large; fine in tests.
 //! Test harness for the anyfee program on LiteSVM.
 //!
 //! Loads the compiled program from `target/deploy/anyfee.so` (build it first with
@@ -112,7 +113,11 @@ pub fn assert_fails(res: TxResult) -> FailedTransactionMetadata {
 pub fn assert_ok(res: TxResult) -> TransactionMetadata {
     match res {
         Ok(meta) => meta,
-        Err(f) => panic!("transaction failed: {:?}\nlogs:\n{}", f.err, f.meta.logs.join("\n")),
+        Err(f) => panic!(
+            "transaction failed: {:?}\nlogs:\n{}",
+            f.err,
+            f.meta.logs.join("\n")
+        ),
     }
 }
 
@@ -146,7 +151,8 @@ impl Env {
         let admin = Keypair::new();
         let attester = Keypair::new();
         let mint_authority = Keypair::new();
-        svm.airdrop(&admin.pubkey(), 100 * LAMPORTS_PER_SOL).unwrap();
+        svm.airdrop(&admin.pubkey(), 100 * LAMPORTS_PER_SOL)
+            .unwrap();
         svm.airdrop(&mint_authority.pubkey(), 10 * LAMPORTS_PER_SOL)
             .unwrap();
 
@@ -315,9 +321,15 @@ impl Env {
         let mint = self.usdc_mint;
         let create = self.create_ata_ix(&auth.pubkey(), owner, &mint);
         let dest = ata(owner, &mint);
-        let mint_ix =
-            spl_token::instruction::mint_to(&spl_token::ID, &mint, &dest, &auth.pubkey(), &[], amount)
-                .unwrap();
+        let mint_ix = spl_token::instruction::mint_to(
+            &spl_token::ID,
+            &mint,
+            &dest,
+            &auth.pubkey(),
+            &[],
+            amount,
+        )
+        .unwrap();
         assert_ok(self.send(&[create, mint_ix], &[&auth]));
         dest
     }
@@ -399,23 +411,12 @@ impl Env {
         refund_window_secs: i64,
         rebind_delay_secs: i64,
     ) -> TxResult {
-        let ix = Instruction::new_with_bytes(
-            PROGRAM_ID,
-            &anyfee::instruction::Initialize {
-                attester,
-                usdc_mint,
-                refund_window_secs,
-                rebind_delay_secs,
-            }
-            .data(),
-            anyfee::accounts::Initialize {
-                admin: signer.pubkey(),
-                config: config_pda(),
-                program: PROGRAM_ID,
-                program_data: programdata_pda(),
-                system_program: solana_sdk_ids::system_program::ID,
-            }
-            .to_account_metas(None),
+        let ix = ix_initialize(
+            &signer.pubkey(),
+            attester,
+            usdc_mint,
+            refund_window_secs,
+            rebind_delay_secs,
         );
         self.send(&[ix], &[signer])
     }
@@ -433,31 +434,71 @@ impl Env {
 
     pub fn tip_token(&mut self, sender: &Keypair, platform: u8, id: u64, amount: u64) -> TxResult {
         let index = self.vault(platform, id).tip_count;
-        let ix = ix_tip_token(&sender.pubkey(), &self.usdc_mint, platform, id, index, amount);
+        let ix = ix_tip_token(
+            &sender.pubkey(),
+            &self.usdc_mint,
+            platform,
+            id,
+            index,
+            amount,
+        );
         self.send(&[ix], &[sender])
     }
 
-    pub fn claim_sol(&mut self, claimant: &Keypair, platform: u8, id: u64, dest: &Pubkey) -> TxResult {
+    pub fn claim_sol(
+        &mut self,
+        claimant: &Keypair,
+        platform: u8,
+        id: u64,
+        dest: &Pubkey,
+    ) -> TxResult {
         let ix = ix_claim_sol(&claimant.pubkey(), platform, id, dest);
         self.send(&[ix], &[claimant])
     }
 
-    pub fn claim_token(&mut self, claimant: &Keypair, platform: u8, id: u64, dest: &Pubkey) -> TxResult {
+    pub fn claim_token(
+        &mut self,
+        claimant: &Keypair,
+        platform: u8,
+        id: u64,
+        dest: &Pubkey,
+    ) -> TxResult {
         let ix = ix_claim_token(&claimant.pubkey(), &self.usdc_mint, platform, id, dest);
         self.send(&[ix], &[claimant])
     }
 
-    pub fn refund_tip(&mut self, cranker: &Keypair, platform: u8, id: u64, index: u64, sender: &Pubkey) -> TxResult {
+    pub fn refund_tip(
+        &mut self,
+        cranker: &Keypair,
+        platform: u8,
+        id: u64,
+        index: u64,
+        sender: &Pubkey,
+    ) -> TxResult {
         let ix = ix_refund_tip(platform, id, index, sender);
         self.send(&[ix], &[cranker])
     }
 
-    pub fn refund_tip_token(&mut self, cranker: &Keypair, platform: u8, id: u64, index: u64, sender: &Pubkey) -> TxResult {
+    pub fn refund_tip_token(
+        &mut self,
+        cranker: &Keypair,
+        platform: u8,
+        id: u64,
+        index: u64,
+        sender: &Pubkey,
+    ) -> TxResult {
         let ix = ix_refund_tip_token(&self.usdc_mint, platform, id, index, sender);
         self.send(&[ix], &[cranker])
     }
 
-    pub fn close_tip(&mut self, cranker: &Keypair, platform: u8, id: u64, index: u64, sender: &Pubkey) -> TxResult {
+    pub fn close_tip(
+        &mut self,
+        cranker: &Keypair,
+        platform: u8,
+        id: u64,
+        index: u64,
+        sender: &Pubkey,
+    ) -> TxResult {
         let ix = ix_close_tip(platform, id, index, sender);
         self.send(&[ix], &[cranker])
     }
@@ -513,6 +554,32 @@ fn ix(data: Vec<u8>, accounts: Vec<AccountMeta>) -> Instruction {
     Instruction::new_with_bytes(PROGRAM_ID, &data, accounts)
 }
 
+pub fn ix_initialize(
+    admin: &Pubkey,
+    attester: Pubkey,
+    usdc_mint: Pubkey,
+    refund_window_secs: i64,
+    rebind_delay_secs: i64,
+) -> Instruction {
+    ix(
+        anyfee::instruction::Initialize {
+            attester,
+            usdc_mint,
+            refund_window_secs,
+            rebind_delay_secs,
+        }
+        .data(),
+        anyfee::accounts::Initialize {
+            admin: *admin,
+            config: config_pda(),
+            program: PROGRAM_ID,
+            program_data: programdata_pda(),
+            system_program: solana_sdk_ids::system_program::ID,
+        }
+        .to_account_metas(None),
+    )
+}
+
 pub fn ix_init_vault(payer: &Pubkey, platform: u8, id: u64) -> Instruction {
     ix(
         anyfee::instruction::InitVault { platform, id }.data(),
@@ -525,10 +592,21 @@ pub fn ix_init_vault(payer: &Pubkey, platform: u8, id: u64) -> Instruction {
     )
 }
 
-pub fn ix_tip_sol(sender: &Pubkey, platform: u8, id: u64, tip_index: u64, amount: u64) -> Instruction {
+pub fn ix_tip_sol(
+    sender: &Pubkey,
+    platform: u8,
+    id: u64,
+    tip_index: u64,
+    amount: u64,
+) -> Instruction {
     let vault = vault_pda(platform, id);
     ix(
-        anyfee::instruction::TipSol { platform, id, amount }.data(),
+        anyfee::instruction::TipSol {
+            platform,
+            id,
+            amount,
+        }
+        .data(),
         anyfee::accounts::TipSol {
             sender: *sender,
             config: config_pda(),
@@ -550,7 +628,12 @@ pub fn ix_tip_token(
 ) -> Instruction {
     let vault = vault_pda(platform, id);
     ix(
-        anyfee::instruction::TipToken { platform, id, amount }.data(),
+        anyfee::instruction::TipToken {
+            platform,
+            id,
+            amount,
+        }
+        .data(),
         anyfee::accounts::TipToken {
             sender: *sender,
             config: config_pda(),

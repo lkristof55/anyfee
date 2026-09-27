@@ -10,6 +10,15 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[features]
+# Enables the `anyfee-localnet-init` binary used by scripts/localnet.sh.
+localnet = ["dep:solana-rpc-client", "dep:solana-commitment-config"]
+
+[[bin]]
+name = "anyfee-localnet-init"
+path = "src/bin/localnet_init.rs"
+required-features = ["localnet"]
+
 [dependencies]
 anyfee = { path = "../../programs/anyfee", features = ["no-entrypoint"] }
 anchor-lang = "=1.2.0"
@@ -29,3 +38,5 @@ hex = "0.4"
 solana-transaction-error = "3"
 solana-instruction = "3"
 solana-rent = "4"
+solana-rpc-client = { version = "4.2", optional = true }
+solana-commitment-config = { version = "3", optional = true }

@@ -16,7 +16,7 @@ pub struct Bind<'info> {
 
     #[account(
         mut,
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -96,7 +96,7 @@ pub struct FinalizeRebind<'info> {
 
     #[account(
         mut,
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump = vault.bump
     )]
     pub vault: Account<'info, Vault>,
@@ -138,7 +138,7 @@ pub struct ClaimantOnly<'info> {
 
     #[account(
         mut,
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump = vault.bump,
         constraint = vault.is_bound() @ AnyfeeError::VaultUnbound,
         constraint = vault.claimant == claimant.key() @ AnyfeeError::NotClaimant

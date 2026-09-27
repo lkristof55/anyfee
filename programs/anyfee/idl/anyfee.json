@@ -44,7 +44,29 @@
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "instructions_sysvar",
@@ -92,7 +114,29 @@
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         }
       ],
       "args": [
@@ -128,7 +172,29 @@
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "destination",
@@ -186,7 +252,29 @@
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "usdc_mint"
@@ -289,6 +377,28 @@
       "accounts": [
         {
           "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          },
           "relations": [
             "tip"
           ]
@@ -362,7 +472,29 @@
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         }
       ],
       "args": [
@@ -412,7 +544,29 @@
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         }
       ],
       "args": [
@@ -454,7 +608,29 @@
             "before initialization): it tops up to rent exemption, then allocates and assigns",
             "with the PDA signature. Pre-existing lamports stay in the vault and are claimable."
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -584,6 +760,28 @@
         {
           "name": "vault",
           "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          },
           "relations": [
             "tip"
           ]
@@ -675,6 +873,28 @@
         {
           "name": "vault",
           "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          },
           "relations": [
             "tip"
           ]
@@ -974,7 +1194,29 @@
           "docs": [
             "Must already be initialized (prepend `init_vault` if it is not)."
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "tip",
@@ -1065,7 +1307,29 @@
           "docs": [
             "Must already be initialized (prepend `init_vault` if it is not)."
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "platform"
+              },
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
         },
         {
           "name": "tip",

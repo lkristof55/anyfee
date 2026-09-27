@@ -34,7 +34,7 @@ pub struct ClaimSol<'info> {
 
     #[account(
         mut,
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump = vault.bump,
         constraint = vault.is_bound() @ AnyfeeError::VaultUnbound,
         constraint = vault.claimant == claimant.key() @ AnyfeeError::NotClaimant
@@ -98,7 +98,7 @@ pub struct ClaimToken<'info> {
 
     #[account(
         mut,
-        seeds = [VAULT_SEED, &[platform], &id.to_le_bytes()],
+        seeds = [VAULT_SEED, platform.to_le_bytes().as_ref(), id.to_le_bytes().as_ref()],
         bump = vault.bump,
         constraint = vault.is_bound() @ AnyfeeError::VaultUnbound,
         constraint = vault.claimant == claimant.key() @ AnyfeeError::NotClaimant

@@ -111,7 +111,12 @@ pub mod anyfee {
     }
 
     /// Permissionless crank: refunds a SOL tip to its sender when the refund rules allow it.
-    pub fn refund_tip(ctx: Context<RefundTip>, platform: u8, id: u64, tip_index: u64) -> Result<()> {
+    pub fn refund_tip(
+        ctx: Context<RefundTip>,
+        platform: u8,
+        id: u64,
+        tip_index: u64,
+    ) -> Result<()> {
         instructions::refund::handle_refund_tip(ctx, platform, id, tip_index)
     }
 
