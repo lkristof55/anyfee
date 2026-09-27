@@ -244,3 +244,172 @@ cargo run -p anyfee-program-tests --features localnet --bin anyfee-localnet-init
 
 `initialize` must be signed by the program's upgrade authority, which here is the deployer. It
 runs once. After that, rotate the admin with `set_config(new_admin = ...)` if needed.
+
+---
+
+## SDK (`@anyfee/sdk`)
+
+TypeScript, ESM, and runs in Node 22.18+ and browsers. It depends on `@solana/web3.js` 1.x,
+`@noble/*`, `bs58` and `buffer`. In this monorepo the package points straight at its `.ts`
+sources: Node strips the types natively, and bundlers handle them. `npm run build -w @anyfee/sdk`
+emits `sdk/dist/` (JS + `.d.ts`) for publishing.
+
+Instruction, account and event layouts are **generated from the committed IDL**. Run
+`npm run sync-idl -w @anyfee/sdk` after the program changes. `sdk/test/idl-conformance.test.ts`
+fails when the SDK drifts from `programs/anyfee/idl/anyfee.json`. The IDL itself ships as
+`@anyfee/sdk/idl`.
+
+```ts
+import { Connection, Transaction } from "@solana/web3.js";
+import {
+  parseTarget, resolveIdentity, fetchVaultState, vaultPda,
+  tipSolInstructions, bindInstructions, claimAllInstructions,
+} from "@anyfee/sdk";
+
+const conn = new Connection("https://api.devnet.solana.com", "confirmed");
+const who = await resolveIdentity("github.com/octocat/Hello-World"); // { platform: 2, id: "1296269", display, warnings }
+const [vault] = vaultPda(who.platform, who.id);                      // deterministic; can receive SOL/fees before init
+const state = await fetchVaultState(conn, who.platform, who.id);      // balances, claimant, pending rebind, declined
+const tipIxs = await tipSolInstructions(conn, { platform: who.platform, id: who.id, sender, amount: 10_000_000n }); // [init_vault?, tip_sol]
+```
+
+| Area | Exports |
+|---|---|
+| Constants | `PROGRAM_ID`, `DEVNET_ATTESTER`, `DEVNET_USDC_MINT`, `Platform` (`GithubUser` 1, `GithubRepo` 2, `X` 3), `PLATFORM_NAMES`, `BIND_DOMAIN`, `CLAIM_PREFIX`, token/ATA/Ed25519 program ids |
+| PDAs | `configPda()`, `vaultPda(platform, id)`, `tipPda(vault, index)`, `vaultAta(vault, mint)`, `associatedTokenAddress(owner, mint)`, `programDataAddress()` |
+| Attestation message | `encodeBindMessage({ platform, id, claimant, expiresAt, programId? })` (95 bytes; unit-tested on the SPEC vector), `decodeBindMessage` |
+| Ed25519 | `buildEd25519VerifyInstruction` (one signature, offsets = u16::MAX), `parseEd25519VerifyInstruction`, `verifyEd25519` |
+| Instruction builders | `initializeIx`, `setConfigIx`, `initVaultIx`, `tipSolIx`, `tipTokenIx`, `bindIx`, `finalizeRebindIx`, `cancelRebindIx`, `claimSolIx`, `claimTokenIx`, `refundTipIx`, `refundTipTokenIx`, `refundIxForTip`, `closeTipIx`, `declineIx`, `createAtaIdempotentIx`; generic `buildInstruction(name, accounts, args)` |
+| Attestations | `createAttestation`, `verifyAttestation`, `attestationToInstructions` → `[Ed25519SigVerify, bind]`, `bindInstructionsFromAttestation`, `claimProof(wallet)` → `anyfee:<wallet>` |
+| Flows (read chain, return instructions) | `tipSolInstructions`, `tipTokenInstructions`, `bindInstructions` (`[init_vault?, ed25519, bind]`), `claimAllInstructions` (`claim_sol` + ATA + `claim_token`) |
+| Accounts | `decodeConfig`, `decodeVault`, `decodeTip`, `identifyAccount`, `fetchConfig`, `fetchVault`, `fetchTip`, `fetchVaultState` |
+| Events and errors | `parseEventsFromLogs(logs)`, `decodeEvent`, `describeProgramError(err)` → `{ code, name, msg }`, `PROGRAM_ERRORS` |
+| Targets | `parseTarget(input)`: `github.com/owner/repo`, `owner/repo`, `git@github.com:o/r.git`, `github.com/user`, `github.com/orgs/x`, `@handle`, `x.com/handle[/status/id]`, a Solana address, or `github-repo:<id>` / `github-user:<id>` / `x:<id>` |
+| Resolvers | `resolveGithubRepo`, `resolveGithubRepoById`, `resolveGithubUser`, `resolveGithubUserById` (GitHub REST, optional token); `fxTwitterResolver()` (default), `xApiResolver({ bearerToken })`, `defaultXResolver()`, `parseTweetUrl`; `resolveIdentity(input)` (includes honest warnings for org accounts, archived repos, forks) |
+| Testing | `@anyfee/sdk/testing`: `memoryChain()`, `tokenAccountData()`, `rentExemptMinimum()` |
+
+## Attester (`attester/`)
+
+The attester verifies ownership proofs and signs `M`. It can bind a vault, and it can never
+withdraw. The handlers are runtime-agnostic, `(Request) => Promise<Response>`
+(`createHandler({ config })`), and two adapters wrap them:
+- a local Node server: `npm run dev -w @anyfee/attester` on `http://127.0.0.1:8787`;
+- a Netlify Functions v2 adapter: `attester/netlify/functions/api.ts` on `/api/*`, with base
+  directory `attester/`.
+
+Environment variables. They are read only from the environment, and are never logged or
+committed:
+
+| Variable | Meaning |
+|---|---|
+| `ATTESTER_SECRET_KEY` | Signing key: base58 (64-byte keypair or 32-byte seed) or a JSON byte array. Without it the attester runs resolve-only, and the attest endpoints answer 503 |
+| `ATTESTER_SECRET_KEY_FILE` | **Local Node server only.** An explicit path to a keypair file, e.g. `ATTESTER_SECRET_KEY_FILE=../keys/attester-devnet.json npm run dev` |
+| `ATTESTER_PUBKEY` | Optional sanity check. Startup fails if the key does not match |
+| `RPC_URL` | Solana RPC (default: devnet public RPC). Only the host is ever printed |
+| `GITHUB_TOKEN` | Optional. Raises GitHub rate limits, and is needed for private repositories |
+| `X_BEARER_TOKEN` | Optional. Uses the official X API v2 instead of `api.fxtwitter.com` |
+| `ATTESTER_SUBMIT=1` | Also send `[init_vault?, ed25519, bind]` as fee payer. Refuses mainnet (by genesis hash) |
+| `FEE_PAYER_SECRET_KEY` | Optional separate fee payer for submit mode (default: the attester key) |
+| `ATTESTATION_TTL_SECS` (900), `X_MAX_POST_AGE_SECS` (86400), `OIDC_CLOCK_SKEW_SECS` (60), `CORS_ORIGIN` (`*`), `PROGRAM_ID`, `USDC_MINT`, `PORT`, `HOST` | Tuning |
+
+### Endpoints
+
+`GET /api/health` returns `{ ok, attester, submit, programId, rpcHost, xResolver, … }`.
+
+`GET /api/resolve?q=github.com/octocat/Hello-World` returns:
+
+```json
+{
+  "query": "github.com/octocat/Hello-World",
+  "platform": 2, "platformName": "github-repo", "id": "1296269",
+  "display": "octocat/Hello-World", "url": "https://github.com/octocat/Hello-World",
+  "github": { "owner": { "id": "583231", "login": "octocat", "type": "User" }, "defaultBranch": "master" },
+  "vault": "4X1UzRBiXYeEDwkSMh6DUCzE7b88dR8aXtWxzxrgahmY",
+  "vaultTokenAccount": "GYrqMrMi9BSGuEyvjpvvU7V4BEqgcGuLKaeXr43zv7L7",
+  "initialized": false,
+  "balances": { "lamports": "0", "rentExemptLamports": "1437640", "claimableLamports": "0",
+                "usdc": { "mint": "4zMMC9…ncDU", "amount": "0", "claimable": "0", "decimals": 6 } },
+  "claimant": null, "boundAt": null, "declined": false,
+  "pending": null,
+  "tips": { "count": "0", "claimEpoch": "0", "outstandingLamports": "0", "outstandingTokens": "0" },
+  "config": null,
+  "warnings": []
+}
+```
+
+- `q` accepts everything `parseTarget` does.
+- `pending` is `{ claimant, effectiveAt }` while a rebind is waiting.
+- Amounts are decimal strings.
+- If the RPC fails, the identity is still returned, with `chainError`.
+- Errors look like `{ "error": { "code", "message" } }`: `400 bad_target`, `404 not_found`,
+  `429`/`502` upstream.
+
+`POST /api/attest/github` with `{ "oidcToken": "<GitHub Actions ID token, aud = anyfee:<wallet>>", "claim": "both" }`
+(`claim`: `repo` | `user` | `both`) returns:
+
+```json
+{
+  "claimant": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+  "repository": { "id": "1296269", "fullName": "octocat/Hello-World", "defaultBranch": "master",
+                  "owner": { "id": "583231", "login": "octocat", "type": "User" } },
+  "run": { "event": "workflow_dispatch", "ref": "refs/heads/master", "actor": "octocat", "actorId": "583231", "sha": "…", "workflowRef": "…", "runId": "…" },
+  "userClaim": { "allowed": true },
+  "attestations": [
+    { "platform": 2, "id": "1296269", "claimant": "9WzD…AWWM", "expiresAt": 1790500900,
+      "message": "<base64, 95 bytes>", "signature": "<base64, 64 bytes>",
+      "attester": "FJpnX2EKfLMyFitghtSjZuoisNxP6ZgkNCQi2LgfiiLY", "vault": "4X1U…ahmY" },
+    { "platform": 1, "id": "583231", "…": "…" }
+  ],
+  "submitted": [ { "platform": 2, "id": "1296269", "status": "sent", "signature": "5x…" } ]
+}
+```
+
+- `submitted` appears only with `ATTESTER_SUBMIT=1`. Its `status` is one of `sent`,
+  `already_bound`, `rebind_already_pending` or `failed`, plus an `error` field.
+- Rejections are `401` (`bad_signature`, `unknown_kid`, `expired`, `not_yet_valid`,
+  `bad_issuer`, `bad_audience`, `unsupported_alg`) or `403` (`bad_event`, `not_default_branch`,
+  `owner_mismatch`, `repo_not_visible`, `user_claim_not_allowed`).
+
+`POST /api/attest/x` with `{ "tweetUrl": "https://x.com/jack/status/20", "claimant": "<wallet>" }`
+returns `{ claimant, post: { id, url, authorId, authorHandle, createdAt }, attestations: [ { "platform": 3, "id": "<author id>", … } ], submitted? }`.
+Rejections are `403` (`proof_missing`, `proof_mismatch`, `proof_ambiguous`, `post_too_old`,
+`post_in_future`) and `404 post_not_found`.
+
+See [`docs/CLAIMING.md`](docs/CLAIMING.md) for the user-facing flow and the trust model.
+
+## GitHub Action (`action/`)
+
+`action/action.yml` is a JavaScript action on `node24`, with no dependencies and no build step.
+- Inputs: `claimant` (required), `attester-url` (required), `claim` (`both` by default).
+- The job needs `permissions: id-token: write`.
+- It mints an OIDC token with audience `anyfee:<claimant>`, masks it, and posts it to
+  `<attester-url>/api/attest/github`.
+- It prints the attestations and any bind transaction links, and writes a job-summary table.
+- Outputs: `claimant`, `attestations` (JSON), `signatures`.
+
+The example workflow is in [`docs/CLAIMING.md`](docs/CLAIMING.md).
+
+`.github/workflows/oidc-selftest.yml` runs when this repository is on GitHub, on
+`workflow_dispatch` and on pushes to `main`. It:
+- mints **real** OIDC tokens and verifies them with the attester's verifier, against GitHub's
+  live JWKS and REST API;
+- checks negative controls: tampered signature, wrong audience, and a payload edited after
+  signing;
+- runs the action end to end against a local attester that signs with a throwaway key.
+
+No secret is needed, and nothing touches Solana.
+
+## JavaScript workspace
+
+```sh
+npm install
+npm test            # sdk + attester + action, offline (recorded fixtures, mock JWKS, in-memory chain)
+npm run typecheck   # tsc 7 over sdk, attester (sources, tests, scripts)
+npm run dev         # attester on http://127.0.0.1:8787 (resolve-only unless a key is configured)
+npm run localnet-e2e -w @anyfee/attester   # opt-in: SDK + attester against the real .so on a throwaway solana-test-validator (ports 18899/19900)
+```
+
+- Node 22.18 or newer is required, because it runs `.ts` files natively.
+- `npm run sync-idl -w @anyfee/sdk` re-syncs the SDK after the program's IDL changes.
+- Test fixtures under `sdk/test/fixtures` are recorded responses from `api.github.com` and
+  `api.fxtwitter.com`.

@@ -1,0 +1,27 @@
+name: anyfee claim
+description: Prove you control this repository (and, if you own it, your GitHub account) to the anyfee attester and bind its vault to your Solana wallet.
+author: anyfee
+branding:
+  icon: link
+  color: purple
+inputs:
+  claimant:
+    description: Solana wallet (base58) that will be able to claim the vault. It is put in the OIDC token audience as anyfee:<claimant>.
+    required: true
+  attester-url:
+    description: Base URL of the anyfee attester, e.g. https://attester.example.org
+    required: true
+  claim:
+    description: Which vaults to bind — repo, user (GitHub account of the repository owner) or both. User claims need a personal repository and the owner running the workflow.
+    required: false
+    default: both
+outputs:
+  claimant:
+    description: The wallet the attestations bind to.
+  attestations:
+    description: JSON array of signed attestations ({platform, id, claimant, expiresAt, message, signature, attester, vault}).
+  signatures:
+    description: Comma-separated bind transaction signatures, when the attester submitted them (ATTESTER_SUBMIT=1).
+runs:
+  using: node24
+  main: index.mjs

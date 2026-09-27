@@ -1,0 +1,40 @@
+{
+  "name": "@anyfee/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the anyfee Solana program: PDAs, instruction builders, account decoders, attestation message, target parsing and GitHub/X resolvers.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./testing": {
+      "types": "./src/testing.ts",
+      "default": "./src/testing.ts"
+    },
+    "./idl": "./src/idl/anyfee.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
+    "sync-idl": "node scripts/sync-idl.ts"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@solana/web3.js": "^1.99.0",
+    "bs58": "^6.0.0",
+    "buffer": "^6.0.3"
+  }
+}

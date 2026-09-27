@@ -1,0 +1,10 @@
+# Deploy the attester as Netlify Functions (base directory: attester/).
+# Required env (Netlify UI, never committed): ATTESTER_SECRET_KEY, RPC_URL (devnet).
+# Optional: GITHUB_TOKEN, X_BEARER_TOKEN, ATTESTER_SUBMIT=1, FEE_PAYER_SECRET_KEY, ATTESTER_PUBKEY.
+[build]
+  command = "echo 'no build step'"
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

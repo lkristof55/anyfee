@@ -161,3 +161,150 @@ Crediting lamports needs no ownership.
 - Config is 122 bytes, Vault 155, Tip 130, each including the 8-byte discriminator. Field order
   is exactly SPEC's.
 - SPEC defines no reserved padding. A v0.2 layout change will need a migration or new seeds.
+
+## sdk/attester (`sdk/`, `attester/`, `action/`, `.github/workflows/oidc-selftest.yml`)
+
+**S1. Runtime and tooling: Node ≥ 22.18, ESM, TypeScript with no build step.**
+- Sources are `.ts` files with `.ts` import specifiers. Node strips the types natively, and so do
+  `node --test` and Netlify's esbuild bundler.
+- `tsconfig` sets `erasableSyntaxOnly` (no enums or parameter properties) and
+  `rewriteRelativeImportExtensions`. So `npm run build -w @anyfee/sdk` can still emit
+  `dist/*.js` + `.d.ts` for a later npm publish.
+- Type checking uses TypeScript 7.0 (`tsc`).
+- In the workspace, `@anyfee/sdk` exports `src/index.ts` directly. The workspace symlink
+  resolves outside `node_modules`, so Node's type stripping applies.
+
+**S2. Small dependency set.**
+- Runtime dependencies: `@solana/web3.js` 1.99, `@noble/curves` and `@noble/hashes` 2.x, `bs58`
+  6, `buffer` 6. The explicit `buffer` import keeps the SDK working in browsers.
+- Dev dependencies: `typescript`, `@types/node`, and `tweetnacl`. Tests verify signatures with
+  tweetnacl, independently of the noble signer.
+- No JWT library. RS256 verification is about 150 lines of WebCrypto (`attester/src/jwt.ts`), so
+  the same code runs on Node, Netlify, Deno and Workers.
+- `npm audit` reports 4 moderate issues. All sit in `@solana/web3.js` 1.x's RPC client internals
+  (`jayson` → `stream-json`/`uuid`), and there is no fix inside 1.x. They only parse responses
+  from the RPC we configure.
+
+**S3. Layouts come from the IDL.**
+- `npm run sync-idl` copies `programs/anyfee/idl/anyfee.json` to `sdk/src/idl/anyfee.json`. It
+  also generates `sdk/src/idl-layout.ts`: instruction account order and flags, Borsh args,
+  account/event fields, and error codes.
+- Typed builders pass a superset of *named* accounts, and the generic `buildInstruction` picks
+  and orders them from the layout. An IDL change therefore rarely needs builder edits.
+- `test/idl-conformance.test.ts` compares the generated layouts with the committed IDL:
+  discriminators, accounts, args, account and event fields, errors.
+- `target/idl` is not checked. It is gitignored local build output and can be ahead of the
+  committed IDL.
+- The offline, self-contained PDA and discriminator tests stay hand-written: the SPEC vector,
+  pinned addresses, and the well-known `initialize` discriminator.
+
+**S4. `parseTarget` accepts more forms than SPEC lists.**
+- Extra forms: `owner/repo`, `git@github.com:owner/repo.git`, `github.com/orgs|users|sponsors/<name>`,
+  and tweet URLs (the author's handle is returned together with `tweetId`).
+- Canonical id forms `github-repo:<id>`, `github-user:<id>` and `x:<id>` exist so the site can
+  link by the stable id.
+- It rejects:
+  - bare words (ambiguous between GitHub and X);
+  - reserved GitHub and X paths;
+  - `x.com/i/web/status/<id>` (no handle);
+  - `anyfee:<wallet>` strings (a proof, not a payee).
+- A Solana address resolves only if it is an initialized vault, or a Tip that points to one. An
+  uninitialized vault PDA cannot be reversed.
+
+**S5. Honest warnings in resolve.**
+- GitHub organizations get a warning: they can never claim a *user* vault, so tips to that vault
+  just refund. Archived repositories (cannot run workflows) and forks also get warnings.
+- Pending rebinds, declined vaults and a paused program appear in `warnings` too.
+- There is no ranking or listing endpoint.
+
+**S6. GitHub OIDC policy (beyond SPEC).**
+- `iss` must match exactly. Enterprise custom issuers are rejected.
+- The header `alg` must be `RS256`. `none` and `HS*` are refused before any key lookup.
+- `exp` and `nbf` allow 60 s of skew. `iat` must not be in the future.
+- `aud` must be one string, or a one-element array, equal to `anyfee:` plus a **canonical**
+  base58 32-byte key. That key must not be all zeros and must not be the vault itself (both are
+  rejected on-chain as well).
+- `ref_type` must be `branch`.
+- The repository is fetched **by `repository_id`** (`/repositories/{id}`), which is stable across
+  renames. Its `id` and `owner.id` must equal the token's `repository_id` and
+  `repository_owner_id`.
+- Private repositories get `repo_not_visible` unless the attester's `GITHUB_TOKEN` can read
+  them.
+- The request may narrow what is bound with `claim: "repo" | "user" | "both"` (default `both`).
+  - An explicit `user` request that is not allowed returns 403.
+  - With `both`, a disallowed user claim is reported in `userClaim.reason`.
+
+**S7. JWKS caching and rotation.**
+- Keys are cached by `kid` for 10 minutes, or for the response's `Cache-Control: max-age`
+  clamped to between 1 minute and 1 hour.
+- An unknown `kid` triggers a refetch at most once every 30 s, to cover key rotation without
+  letting refetches be abused.
+- Stale-if-error: the last good keys stay in use if GitHub's JWKS is down.
+- Only RSA `sig` keys of at least 2048 bits are imported.
+
+**S8. X policy.**
+- The post must contain exactly one distinct `anyfee:<wallet>`, matched as a whole token and in
+  lowercase, and it must name the requested wallet.
+- The post must be at most 24 h old (`X_MAX_POST_AGE_SECS`) and not dated in the future. This
+  bounds how long an old post can be replayed after the owner moves to a new wallet.
+- The vault id is the author id returned by the resolver. The handle in the pasted URL is
+  ignored.
+- The default resolver is fxtwitter, which returns a 302 or a 404 JSON when something is not
+  found; both are treated as not found. The official X API v2 is used when `X_BEARER_TOKEN` is
+  set. A `200 {errors}` from it is treated as not found, and `note_tweet` text is preferred.
+
+**S9. Attestation format and TTL.**
+- Format: `{ platform, id (decimal string), claimant, expiresAt (unix s), message (base64),
+  signature (base64), attester, vault }`.
+- TTL is 15 minutes by default, configurable from 60 s to 1 h.
+- The SDK's `verifyAttestation` re-derives every field from the signed message. So a JSON field
+  can never disagree with what `bind` checks.
+
+**S10. Submit mode (`ATTESTER_SUBMIT=1`).**
+- One transaction per attestation: `[ComputeBudget 200k, init_vault if missing, Ed25519SigVerify, bind]`.
+- It is skipped as `already_bound` when the claimant is already bound (the program would fail
+  with `AlreadyClaimant`). It is skipped as `rebind_already_pending` when the same claimant is
+  already pending, so a retry does not restart the rebind timer.
+- It fails early when the program is paused.
+- It refuses to send when the RPC's genesis hash is mainnet-beta's.
+- The fee payer is `FEE_PAYER_SECRET_KEY`, or the attester key.
+- The program's custom errors are reported by name through the IDL error table.
+- After 20 s without confirmation it answers `sent` with a note, not a failure.
+
+**S11. Keys and secrets.**
+- Keys come from env only. `ATTESTER_SECRET_KEY_FILE` is honoured **only** by the local Node
+  server (`src/server.ts`), and only with an explicit path. No default path to `keys/` exists
+  anywhere.
+- The Netlify adapter rejects the file option.
+- `describeConfig` prints the attester pubkey and the RPC *host* only. RPC URLs often carry API
+  keys.
+- The action masks the OIDC token. The attester never logs tokens.
+
+**S12. Serving.**
+- Without a key the attester runs resolve-only, and the attest endpoints answer 503.
+- CORS `*` (no cookies). Request bodies are limited to 16 KB.
+- Identity lookups are cached in memory for 5 minutes (404s for 60 s). Chain state is never
+  cached.
+- No rate limiting in v0.1. Put the attester behind the platform's limits before any public
+  launch.
+
+**S13. The action is a JavaScript action (`runs.using: node24`) with no dependencies.**
+- It reads its inputs from `INPUT_*` and requests the token from
+  `ACTIONS_ID_TOKEN_REQUEST_URL&audience=…`. That is what `@actions/core.getIDToken` does,
+  without the dependency.
+- The attester URL must be https (localhost is allowed for testing).
+- It fails the job with the attester's error code and message.
+
+**S14. Live OIDC proof in CI.**
+- The self-test workflow verifies real tokens and runs negative controls.
+- It also runs the action end to end against a local attester with a throwaway key. So the first
+  push to GitHub proves both the verifier and the action with real tokens.
+
+**S15. A real-program end-to-end script, opt-in.**
+- `npm run localnet-e2e -w @anyfee/attester` spawns its own `solana-test-validator` with the
+  compiled `.so` (upgradeable, admin = upgrade authority) on ports 18899/19900, so it does not
+  clash with `scripts/localnet.sh` on 8899.
+- It drives the SDK and the attester, in submit mode, through 28 checks. These include
+  pre-funded `init_vault`, tips, OIDC → bind, claims, `close_tip`, rebind + cancel, X → bind,
+  decline, refund, and five on-chain rejections.
+- It is not part of `npm test`, because it needs the Solana CLI and a built program.

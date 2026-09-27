@@ -1,0 +1,65 @@
+# Proves that real GitHub Actions OIDC tokens verify with the attester's verifier (GitHub's live
+# JWKS + REST API), and runs the claim action end-to-end against a local attester that signs with
+# a throwaway key. Nothing here touches Solana and no repository secret is needed.
+name: oidc-selftest
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "attester/**"
+      - "action/**"
+      - "sdk/**"
+      - ".github/workflows/oidc-selftest.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+      - name: Verify real OIDC tokens with the attester verifier
+        run: node attester/scripts/oidc-selftest.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Start a local attester with a throwaway key (never used on chain)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module -e 'import { Keypair } from "@solana/web3.js"; process.stdout.write(JSON.stringify(Array.from(Keypair.generate().secretKey)))' > "$RUNNER_TEMP/throwaway-attester.json"
+          ATTESTER_SECRET_KEY_FILE="$RUNNER_TEMP/throwaway-attester.json" nohup node attester/src/server.ts > "$RUNNER_TEMP/attester.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8787/api/health && exit 0; sleep 1; done
+          cat "$RUNNER_TEMP/attester.log"; exit 1
+
+      - name: Run the claim action against it
+        id: claim
+        uses: ./action
+        with:
+          claimant: 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM
+          attester-url: http://127.0.0.1:8787
+
+      - name: Check the action outputs
+        env:
+          ATTESTATIONS: ${{ steps.claim.outputs.attestations }}
+        run: |
+          node -e '
+            const a = JSON.parse(process.env.ATTESTATIONS);
+            if (!Array.isArray(a) || !a.some((x) => x.platform === 2)) { console.error("no repo attestation"); process.exit(1); }
+            console.log("attestations:", a.map((x) => x.platform + ":" + x.id).join(", "));'
+
+      - name: Attester log
+        if: always()
+        run: cat "$RUNNER_TEMP/attester.log" || true

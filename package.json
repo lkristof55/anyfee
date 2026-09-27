@@ -1,0 +1,27 @@
+{
+  "name": "anyfee",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One address for anyone: tip a GitHub repo, a GitHub user or an X account on Solana; they claim by proving control.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "workspaces": [
+    "sdk",
+    "attester",
+    "action"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev -w @anyfee/attester"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "tweetnacl": "^1.0.3",
+    "typescript": "^7.0.2"
+  }
+}

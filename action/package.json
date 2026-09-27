@@ -1,0 +1,11 @@
+{
+  "name": "@anyfee/action",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GitHub Action: mint an OIDC token with audience anyfee:<claimant> and exchange it at the anyfee attester.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\""
+  }
+}
