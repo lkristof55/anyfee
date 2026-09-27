@@ -237,3 +237,46 @@ fn declined_vault_token_claim_keeps_outstanding_back() {
     );
     assert_eq!(env.token_balance(&vault_ata), 0);
 }
+
+#[test]
+fn compute_units_stay_modest() {
+    // Prints CU per instruction (cargo test -- --nocapture) and guards against regressions.
+    let (mut env, payer) = setup();
+    let sender = env.funded_keypair(5);
+    let owner = env.funded_keypair(1);
+    env.mint_usdc_to(&sender.pubkey(), 100 * USDC);
+    let mut report = Vec::new();
+    let mut rec = |name: &str, meta: litesvm::types::TransactionMetadata| {
+        report.push((name.to_string(), meta.compute_units_consumed));
+    };
+    rec("init_vault", assert_ok(env.init_vault(&payer, P, ID + 1)));
+    rec("tip_sol", assert_ok(env.tip_sol(&sender, P, ID, 1_000_000)));
+    rec("tip_token (creates ATA)", assert_ok(env.tip_token(&sender, P, ID, USDC)));
+    rec("tip_token", assert_ok(env.tip_token(&sender, P, ID, USDC)));
+    rec(
+        "ed25519 + bind",
+        assert_ok(env.bind_as_attester(&payer, P, ID, &owner.pubkey())),
+    );
+    let other = env.funded_keypair(1);
+    rec(
+        "ed25519 + bind (rebind request)",
+        assert_ok(env.bind_as_attester(&payer, P, ID, &other.pubkey())),
+    );
+    rec("cancel_rebind", assert_ok(env.cancel_rebind(&owner, P, ID)));
+    rec("claim_sol", assert_ok(env.claim_sol(&owner, P, ID, &owner.pubkey())));
+    let dest = env.mint_usdc_to(&owner.pubkey(), 0);
+    rec("claim_token", assert_ok(env.claim_token(&owner, P, ID, &dest)));
+    rec("close_tip", assert_ok(env.close_tip(&payer, P, ID, 0, &sender.pubkey())));
+    assert_ok(env.tip_sol(&sender, P, ID, 1_000_000));
+    assert_ok(env.tip_token(&sender, P, ID, USDC));
+    rec("decline", assert_ok(env.decline(&owner, P, ID)));
+    rec("refund_tip", assert_ok(env.refund_tip(&payer, P, ID, 3, &sender.pubkey())));
+    rec(
+        "refund_tip_token",
+        assert_ok(env.refund_tip_token(&payer, P, ID, 4, &sender.pubkey())),
+    );
+    for (name, cu) in &report {
+        println!("{name:<34} {cu:>7} CU");
+        assert!(*cu < 60_000, "{name} uses {cu} CU");
+    }
+}

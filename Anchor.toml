@@ -17,5 +17,6 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-# `anchor test --skip-local-validator --skip-deploy` builds, then runs the LiteSVM suite.
+# scripts/build-program.sh && anchor test --skip-build --skip-local-validator --skip-deploy
+# (or simply scripts/test-program.sh) runs the LiteSVM suite against target/deploy/anyfee.so.
 test = "cargo test -p anyfee-program-tests"
