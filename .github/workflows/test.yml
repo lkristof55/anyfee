@@ -1,0 +1,42 @@
+name: test
+on:
+  push:
+  pull_request:
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:site
+  program:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/solana
+            ~/.local/share/solana
+            ~/.cargo/registry
+            target
+          key: program-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+      - name: Install Solana CLI (Agave 4.2.2)
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v4.2.2/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - name: Build the program (platform-tools v1.54, SBPF v3)
+        run: cargo build-sbf --manifest-path programs/anyfee/Cargo.toml --tools-version v1.54 --arch v3
+      - name: Unit + LiteSVM tests
+        run: cargo test -p anyfee -p anyfee-program-tests
+      - name: Clippy
+        run: cargo clippy -p anyfee -- -D warnings
