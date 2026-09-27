@@ -1,4 +1,5 @@
-# Netlify: the website and its same-origin /api as one site. Not deployed yet (devnet MVP).
+# Netlify: the website and its same-origin /api as one site (alternative to wrangler.jsonc; the
+# live devnet site runs on Cloudflare Workers).
 #
 # Site settings: base directory `app`, build command and publish dir below. Netlify installs the
 # npm workspace from the repository root, so @anyfee/sdk and @anyfee/attester resolve.

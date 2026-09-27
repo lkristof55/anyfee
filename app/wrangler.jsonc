@@ -1,0 +1,21 @@
+// Cloudflare Workers deploy of the website + same-origin /api (alternative to netlify.toml).
+//   npm run build && npx wrangler deploy          (from app/)
+// Secrets (never committed): npx wrangler secret put ATTESTER_SECRET_KEY / RPC_URL (devnet).
+// Optional secrets: GITHUB_TOKEN, X_BEARER_TOKEN, FEE_PAYER_SECRET_KEY; optional vars below.
+{
+  "name": "app",
+  "main": "worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS",
+    "html_handling": "drop-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*", "/v/*"]
+  },
+  "vars": {
+    "ATTESTER_PUBKEY": "FJpnX2EKfLMyFitghtSjZuoisNxP6ZgkNCQi2LgfiiLY"
+  },
+  "observability": { "enabled": true }
+}

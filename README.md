@@ -5,7 +5,8 @@ One address for anyone. Send SOL or USDC tips, or route pump.fun and Bags creato
 permanent numeric id. The owner claims later by proving control. Unclaimed direct tips go back
 to the sender.
 
-**Status: devnet MVP.** No mainnet use. No real funds. Read [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md)
+**Status: devnet MVP.** Live on devnet at **https://app.anyfee.workers.dev** (site, attester and
+`/api`, one Cloudflare Worker). No mainnet use. No real funds. Read [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md)
 before trusting it with anything.
 
 | Document | Contents |
@@ -453,17 +454,31 @@ npm run dev:site                        # → http://127.0.0.1:8788, rebuilds on
 
 ```sh
 npm run build -w @anyfee/app     # app/dist: hashed JS/CSS, one HTML shell per static route, 404.html
-npm test -w @anyfee/app          # offline: routes, meta shell, RPC proxy, formatting, Netlify functions
+npm test -w @anyfee/app          # offline: routes, meta shell, RPC proxy, formatting, serverless handlers
 ```
 
 JS is split into the app (≈142 KB gzip) and the lazily loaded three.js wall (≈138 KB gzip),
 ≈280 KB in total; CSS ≈8 KB gzip. Without WebGL a CSS wall stands in; with
 `prefers-reduced-motion` the box is simply out, nothing animates.
 
-`app/netlify.toml` deploys the site and its API as one Netlify site (base directory `app`,
-publish `dist`): `netlify/functions/api.ts` serves `/api/*` through the attester's Netlify
-adapter plus the RPC proxy, and `netlify/functions/vault-page.ts` serves `/v/*` with per-page meta
-tags. Secrets (`RPC_URL`, `ATTESTER_SECRET_KEY`) go in the Netlify UI. It has not been deployed.
+The live devnet site runs on Cloudflare Workers from `app/wrangler.jsonc`: `app/worker.ts` serves
+`dist/` through the assets binding (headers from `public/_headers`), `/api/*` through the
+attester handler plus the RPC proxy, and `/v/*` with per-page meta tags. Deploy your own copy:
+
+```sh
+cd app && npm run build
+npx wrangler secret put ATTESTER_SECRET_KEY   # devnet attester key (JSON byte array or base58)
+npx wrangler secret put RPC_URL               # devnet RPC URL (may carry an API key; never sent to the browser)
+npx wrangler secret put ATTESTER_SUBMIT       # optional: 1 = the attester also submits the bind transaction
+npx wrangler deploy
+```
+
+It fits the Workers free plan (no cron, no storage). Set `ATTESTER_PUBKEY` in `wrangler.jsonc` to
+your own attester's public key, or remove it. An optional `GITHUB_TOKEN` secret (a fine-grained
+token with no permissions is enough) avoids GitHub's unauthenticated rate limit on shared egress IPs.
+
+`app/netlify.toml` is the equivalent Netlify setup: `netlify/functions/api.ts` on `/api/*` and
+`netlify/functions/vault-page.ts` on `/v/*`, secrets in the Netlify UI.
 
 ### End-to-end on devnet (opt-in)
 

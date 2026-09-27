@@ -57,7 +57,7 @@ jobs:
       - uses: OWNER/anyfee/action@v0.1.0   # replace with the published action location
         with:
           claimant: ${{ inputs.claimant }}
-          attester-url: https://ATTESTER_HOST   # the anyfee attester, e.g. the one linked from the site
+          attester-url: https://app.anyfee.workers.dev   # the anyfee attester (devnet); or your own
           claim: ${{ inputs.claim }}
 ```
 
@@ -115,7 +115,7 @@ already-bound vault.
    `Claiming my anyfee vault anyfee:9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM`.
 2. Paste the post's URL into the claim page, or call the attester yourself:
    ```sh
-   curl -s https://ATTESTER_HOST/api/attest/x \
+   curl -s https://app.anyfee.workers.dev/api/attest/x \
      -H 'content-type: application/json' \
      -d '{"tweetUrl":"https://x.com/you/status/1234567890","claimant":"<your wallet>"}'
    ```
@@ -166,7 +166,7 @@ const tx = new Transaction().add(...ixs); // sign with any fee payer and send
 In the action log (and as a table in the job summary):
 
 ```
-Requested an OIDC token for audience anyfee:9WzD…AWWM; sending it to https://ATTESTER_HOST
+Requested an OIDC token for audience anyfee:9WzD…AWWM; sending it to https://app.anyfee.workers.dev
 anyfee: attester verified octocat/Hello-World for wallet 9WzD…AWWM
   - GitHub repository #1296269 -> vault 4X1U…ahmY (attestation expires 2026-09-27T10:15:00.000Z)
   - GitHub user #583231 -> vault 8ZR2…n3My (attestation expires 2026-09-27T10:15:00.000Z)
