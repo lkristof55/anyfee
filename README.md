@@ -403,26 +403,31 @@ No secret is needed, and nothing touches Solana.
 
 ## Website (`app/`)
 
-The site is the counter of a post-office lobby: a wall of numbered brass P.O. boxes (three.js),
-where looking up an account slides its box out, engraved with the account's numeric id, and a
-confirmed tip drops a letter into its slot. It runs on **devnet only** and says so on every page.
+A technical, minimal site: one neutral palette (light and dark), one signal accent for money on
+the move, Public Sans for text and IBM Plex Mono for addresses, ids and labels, hairline rules for
+the grid. Small isometric three.js diagrams explain the mechanism: the home page's first screen
+shows the whole flow (a coin's creator fees and tips flow into a vault keyed by platform and id,
+a GitHub OIDC proof reaches it, the funds move to the owner's wallet), and "How it works" has
+one glyph per step (derive, fund, claim, refund). It runs on **devnet only** and says so on
+every page.
 
 | Route | Page |
 |---|---|
-| `/` | Send: one field (GitHub repo, GitHub user, X handle or box address) → the box's record, tip form, fee-recipient notes |
-| `/v/github/:owner/:repo`, `/v/gh/:login`, `/v/x/:handle` | Shareable box pages, with per-page `<title>` and Open Graph tags |
+| `/` | What anyfee is, the lookup field (GitHub repo, GitHub user, X handle or vault address), how it works, coin launchers, safety |
+| `/v/github/:owner/:repo`, `/v/gh/:login`, `/v/x/:handle` | Shareable vault pages, with per-page `<title>` and Open Graph tags |
 | `/v/id/:platform/:id` | The same page by permanent numeric id (`github-repo`, `github-user`, `x`); survives renames |
 | `/claim` | Claim: account type → wallet → proof (GitHub workflow YAML pre-filled, or an X post) → bind → claim; a pasted attestation JSON works for every type |
 | `/how`, `/faq` | Mechanism and threat-model summary; straight answers |
-| anything else | An in-character 404 (HTTP 404) |
+| anything else | A plain 404 (HTTP 404) |
 
-A box page shows the identity (GitHub avatars, X avatars from fxtwitter), box number, address,
-status (unclaimed / held by … / declined / change pending), SOL and USDC in the box and the tip
-count. It has the tip form (SOL or USDC, `init_vault` in the same transaction, every cost itemized),
-"Your mail to this box" (the connected wallet's receipts with refund dates, **Refund** once the
-window passes or the owner declines, **Close receipt** for receipts a claim consumed), the
-holder's window (claim everything, cancel a pending change of holder, decline, finalize a due
-change) and the fee-recipient notes for pump.fun and Bags.
+A vault page is a technical readout: identity (GitHub avatars, X avatars from fxtwitter),
+platform and numeric id, vault address, status (unclaimed / claimed / declined / rebind pending),
+SOL and USDC balance, owner, pending rebind and tip count, with a small diagram of the vault's
+state. It has the tip form (SOL or USDC, `init_vault` in the same transaction, every cost
+itemized), "Your tips to this vault" (the connected wallet's receipts with refund dates,
+**Refund** once the window passes or the owner declines, **Close receipt** for receipts a claim
+consumed), the owner's panel (claim everything, cancel a pending rebind, decline, finalize a due
+rebind) and the creator-fee instructions for pump.fun and Bags.
 
 Every transaction is built with the SDK (`tipSolInstructions`, `tipTokenInstructions`,
 `bindInstructions`, `claimAllInstructions`, `declineIx`, `cancelRebindIx`, `finalizeRebindIx`,
@@ -454,12 +459,19 @@ npm run dev:site                        # → http://127.0.0.1:8788, rebuilds on
 
 ```sh
 npm run build -w @anyfee/app     # app/dist: hashed JS/CSS, one HTML shell per static route, 404.html
-npm test -w @anyfee/app          # offline: routes, meta shell, RPC proxy, formatting, serverless handlers
+npm test -w @anyfee/app          # offline: routes, meta shell, RPC proxy, formatting, serverless handlers, diagrams, copy rules
+PLAYWRIGHT_MODULE=/path/to/node_modules/playwright/index.mjs \
+npm run smoke -w @anyfee/app     # headless Chromium, no keys, no funds: every page light/dark at 390x844 and 1440x900,
+                                 # WebGL renders, reduced-motion and no-WebGL fallbacks, a connected (non-signing) wallet
 ```
 
-JS is split into the app (≈142 KB gzip) and the lazily loaded three.js wall (≈138 KB gzip),
-≈280 KB in total; CSS ≈8 KB gzip. Without WebGL a CSS wall stands in; with
-`prefers-reduced-motion` the box is simply out, nothing animates.
+JS is split into the app (≈151 KB gzip) and the lazily loaded diagram engine (`src/diagrams/gl.js`
+with three.js, ≈110 KB gzip), ≈261 KB in total; CSS ≈7 KB gzip. The build imports three.js
+module by module and keeps only the GLSL that `MeshBasicMaterial` and `LineDashedMaterial` use
+(`scripts/build.ts`). Every diagram is a pure function of time (`src/diagrams/scenes.js`) drawn
+two ways: a static SVG frame (first paint, `prefers-reduced-motion`, no WebGL) and, once the
+page has painted, one shared WebGL renderer that draws only the diagrams on screen. Labels are
+DOM text in both.
 
 The live devnet site runs on Cloudflare Workers from `app/wrangler.jsonc`: `app/worker.ts` serves
 `dist/` through the assets binding (headers from `public/_headers`), `/api/*` through the
@@ -492,9 +504,10 @@ Headless Chromium drives the real site against the live program with an injected
 Standard test wallet (`keys/site-test-wallet.json`, signing in Node; funded from
 `keys/devnet-deployer.json`, capped at 0.05 SOL across all runs):
 
-1. `lkristof55/ox81`: look it up, connect, tip 0.001 SOL; the card and "Your mail" show it.
+1. `lkristof55/ox81`: look it up, connect, tip 0.001 SOL; the readout and "Your tips to this
+   vault" show it.
 2. A synthetic X id: tip, paste a locally signed attestation on `/claim`, bind, claim, close
-   the consumed receipt, then a rebind request for another wallet that the holder cancels.
+   the consumed receipt, then a rebind request for another wallet that the owner cancels.
 3. Another synthetic X id: tip, bind, decline, refund.
 
 It then takes desktop (1440×900) and mobile (390×844) screenshots of every page into

@@ -1,4 +1,4 @@
-// Claim: pick the account type, connect the wallet that will hold the box, prove control
+// Claim: pick the account type, connect the wallet that will own the vault, prove control
 // (GitHub Actions OIDC via the workflow, or a public X post), bind, then claim.
 // A pasted attestation JSON works for every type (for when the attester runs elsewhere).
 import { PublicKey } from "@solana/web3.js";
@@ -12,10 +12,12 @@ import { current, onWallet, signer } from "../lib/wallet.js";
 import { platformLabel, vaultPath } from "../routes.js";
 import { ensureWallet } from "../ui/walletui.js";
 import { toast } from "../ui/toast.js";
+import { diagram } from "../diagrams/index.js";
+import { STEPS } from "../content.js";
 import { ownerPanel, recordCard, statusOf } from "./parts.js";
 
 const TYPES = [
-  { key: "github-repo", title: "GitHub repository", how: "Run one workflow on the default branch. Whoever can do that controls the repository's box." },
+  { key: "github-repo", title: "GitHub repository", how: "Run one workflow on the default branch. Whoever can do that controls the repository's vault." },
   { key: "github-user", title: "GitHub account", how: "Run the same workflow yourself, in a repository your personal account owns." },
   { key: "x", title: "X account", how: "Publish one public post with a short code, then paste its link." },
 ];
@@ -68,7 +70,7 @@ function createClaim(loc) {
   const params = new URLSearchParams(loc.search);
   let type = TYPES.some((t) => t.key === params.get("type")) ? params.get("type") : null;
   let identityQuery = params.get("q") ?? "";
-  let box = null; // resolve result of the box being claimed
+  let box = null; // resolve result of the vault being claimed
   let pollTimer = 0;
   let disposed = false;
   const offs = [];
@@ -77,19 +79,24 @@ function createClaim(loc) {
   const stepTrack = (fn) => stepOffs.push(fn);
 
   const typeStep = h("li.step", h("h2.step-title", "Which account?"));
-  const walletStep = h("li.step", h("h2.step-title", "The wallet that will hold the box"));
+  const walletStep = h("li.step", h("h2.step-title", "The wallet that will own the vault"));
   const proveStep = h("li.step", h("h2.step-title", "Prove control"));
-  const boxStep = h("li.step", h("h2.step-title", "The box"));
+  const boxStep = h("li.step", h("h2.step-title", "The vault"));
+  const fig = diagram("claim", {}, { label: STEPS.find((s) => s.id === "claim").figure, className: "dg-page" });
   const el = h(
-    "section.claim",
+    "section.wrap.claim.page",
     h(
-      "header.page-head",
-      h("p.kicker", "Claim"),
-      h("h1.display.display-page", "Prove it's yours once. The box follows your wallet."),
+      "header.page-head.page-head-fig",
       h(
-        "p.lede",
-        "You never share a password or a token. The attester checks a GitHub Actions run or a public X post and signs a short statement: this box may be bound to this wallet. The program checks that signature on-chain.",
+        "div.page-head-copy",
+        h("p.label", "Claim"),
+        h("h1.page-title", "Prove control once. The vault binds to your wallet."),
+        h(
+          "p.lede",
+          "You never share a password or a token. The attester checks a GitHub Actions run or a public X post and signs a short statement: this vault may be bound to this wallet. The program checks that signature on-chain; only that wallet can withdraw.",
+        ),
       ),
+      h("figure.page-fig", fig.el, h("figcaption.mono.small.muted", "proof → attester signature → ed25519 check → bind → withdraw")),
     ),
     h("ol.steps", typeStep, walletStep, proveStep, boxStep),
   );
@@ -130,13 +137,13 @@ function createClaim(loc) {
         replace(
           walletBody,
           h("p", "Connected: ", h("code.mono", s.address), " ", copyButton(s.address, "Copy")),
-          h("p.small.muted", "Only this wallet will be able to withdraw from the box. Use a wallet you control; switch it to devnet."),
+          h("p.small.muted", "Only this wallet will be able to withdraw from the vault. Use a wallet you control; switch it to devnet."),
         );
       } else {
         replace(
           walletBody,
-          h("p.muted", "Connect the wallet you want the box bound to."),
-          h("button.btn.btn-brass", { type: "button", onclick: () => ensureWallet().catch(() => {}) }, "Connect wallet"),
+          h("p.muted", "Connect the wallet you want the vault bound to."),
+          h("button.btn.btn-primary", { type: "button", onclick: () => ensureWallet().catch(() => {}) }, "Connect wallet"),
         );
       }
     drawProve();
@@ -219,7 +226,7 @@ function createClaim(loc) {
             " → ",
             h("span.mono", short(v.claimant.toBase58(), 6)),
             h("span.small.muted", ` · expires ${relTime(Number(v.expiresAt))}`),
-            mine ? null : h("span.block.notice.notice-red", "This binds the box to a different wallet than the one connected. You can still submit it, but only that wallet will be able to withdraw."),
+            mine ? null : h("span.block.notice.notice-red", "This binds the vault to a different wallet than the one connected. You can still submit it, but only that wallet will be able to withdraw."),
           ),
         );
       } catch (e) {
@@ -227,7 +234,7 @@ function createClaim(loc) {
       }
     }
     const status = h("p.form-status", { role: "status" });
-    const bindBtn = h("button.btn.btn-brass", { type: "button", disabled: !valid.length }, valid.length > 1 ? `Bind ${valid.length} boxes` : "Bind with my wallet");
+    const bindBtn = h("button.btn.btn-primary", { type: "button", disabled: !valid.length }, valid.length > 1 ? `Bind ${valid.length} vaults` : "Bind with my wallet");
     bindBtn.addEventListener("click", () => submitBinds(valid, bindBtn, status));
     replace(out, h("ul.att-list", rows), valid.length ? h("div.row", bindBtn) : null, status);
   }
@@ -250,13 +257,13 @@ function createClaim(loc) {
         const what = `${platformLabel(PLATFORM_NAMES[a.platform])} #${a.id}`;
         toast({
           kind: "ok",
-          title: rebind ? `Change of holder requested for ${what}` : `Bound ${what}`,
-          body: rebind ? "The box already had a holder: the change waits for the rebind delay, and the holder can cancel it." : undefined,
+          title: rebind ? `Rebind requested for ${what}` : `Bound ${what}`,
+          body: rebind ? "The vault already had an owner: the rebind waits for the rebind delay, and the owner can cancel it." : undefined,
           sig,
         });
         last = a;
       }
-      status.textContent = "Bound. The box is below.";
+      status.textContent = "Bound. The vault is below.";
       if (last) {
         identityQuery = `${PLATFORM_NAMES[last.platform]}:${last.id}`;
         await loadBox(true);
@@ -328,7 +335,7 @@ function createClaim(loc) {
       if (repoFull) {
         const newUrl = `https://github.com/${repoFull}/new/${encodeURIComponent(branch || "main")}?filename=${encodeURIComponent(".github/workflows/anyfee-claim.yml")}&value=${encodeURIComponent(yaml)}`;
         links.push(
-          h("a.btn.btn-brass", { href: newUrl, target: "_blank", rel: "noopener" }, "Add it to the repository ↗"),
+          h("a.btn.btn-primary", { href: newUrl, target: "_blank", rel: "noopener" }, "Add it to the repository ↗"),
           h("a.btn.btn-ghost", { href: `https://github.com/${repoFull}/actions/workflows/anyfee-claim.yml`, target: "_blank", rel: "noopener" }, "Open the workflow's Run button ↗"),
         );
       }
@@ -339,12 +346,12 @@ function createClaim(loc) {
         h("p.small.muted", "The action is not published yet: replace ", h("code.mono", "OWNER/anyfee/action@v0.1.0"), " with its location (the ", h("code.mono", "action/"), " folder of the anyfee repository)."),
         h("p", "Then open ", h("strong", "Actions → anyfee claim → Run workflow"), " and keep the default branch. The run sends GitHub's signed token to the attester; nothing else leaves the runner."),
         links.length ? h("div.row.row-wrap", links) : null,
-        h("p.small.muted", isUser ? "Run it yourself, in a repository your personal account owns: the attester checks that the person who ran it owns the repository. With claim: both, the same run also claims that repository's box." : "Anyone who can run workflows on the default branch can claim the repository's box. If it was claimed before, a new claim waits 48 hours and the current holder can cancel it."),
+        h("p.small.muted", isUser ? "Run it yourself, in a repository your personal account owns: the attester checks that the person who ran it owns the repository. With claim: both, the same run also claims that repository's vault." : "Anyone who can run workflows on the default branch can claim the repository's vault. If it was claimed before, a new claim waits 48 hours and the current owner can cancel it."),
       );
     };
     const ident = identityInput(isUser ? "Your GitHub username" : "Repository", isUser ? "github.com/your-login" : "github.com/owner/repo", (res) => {
       if (isUser && res.github?.type === "Organization") {
-        replace(workflow, h("p.notice.notice-red", "This is an organization. Only personal accounts can claim a GitHub-account box; organizations are paid through their repositories."));
+        replace(workflow, h("p.notice.notice-red", "This is an organization. Only personal accounts can claim a GitHub-account vault; organizations are paid through their repositories."));
         return;
       }
       if (isUser) {
@@ -379,10 +386,10 @@ function createClaim(loc) {
 
   function drawProveX(wallet) {
     const proof = claimProof(wallet);
-    const text = `Claiming my anyfee box ${proof}`;
+    const text = `Claiming my anyfee vault ${proof}`;
     const url = h("input.input", { placeholder: "https://x.com/you/status/1234567890", spellcheck: "false", "aria-label": "Post URL" });
     const out = h("div.x-out", { "aria-live": "polite" });
-    const verify = h("button.btn.btn-brass", { type: "button" }, "Verify the post");
+    const verify = h("button.btn.btn-primary", { type: "button" }, "Verify the post");
     verify.addEventListener("click", async () => {
       const v = url.value.trim();
       if (!v) return;
@@ -394,7 +401,7 @@ function createClaim(loc) {
         replace(out, h("p", "Verified: post by ", h("strong", `@${r.post.authorHandle}`), ` (X account #${groupDigits(r.post.authorId)}).`));
         identityQuery = `x:${r.post.authorId}`;
         if (sub && (sub.status === "sent" || sub.status === "already_bound" || sub.status === "rebind_already_pending")) {
-          out.append(h("p", "The attester submitted the bind itself. Watching the box…"));
+          out.append(h("p", "The attester submitted the bind itself. Watching the vault…"));
           await loadBox(true);
           startPolling();
         } else {
@@ -415,7 +422,7 @@ function createClaim(loc) {
       h("p", "Publish a ", h("strong", "public"), " post from the account that contains exactly this code:"),
       h("div.proof", h("code.mono.proof-code", proof), copyButton(proof, "Copy")),
       h("div.row.row-wrap", h("a.btn.btn-ghost", { href: `https://x.com/intent/post?text=${encodeURIComponent(text)}`, target: "_blank", rel: "noopener" }, "Open the X composer ↗")),
-      h("p.small.muted", "The attester reads the post, takes the author's numeric id from X (the handle in the link is ignored) and signs. Posts older than 24 hours are refused. You can delete the post once the box is bound."),
+      h("p.small.muted", "The attester reads the post, takes the author's numeric id from X (the handle in the link is ignored) and signs. Posts older than 24 hours are refused. You can delete the post once the vault is bound."),
       attesterField(),
       h("label.field-label", "Link to your post"),
       h("div.row", url, verify),
@@ -424,7 +431,7 @@ function createClaim(loc) {
     );
   }
 
-  // ---- step 4: the box
+  // ---- step 4: the vault
   const boxBody = h("div.step-body");
   boxStep.append(boxBody);
 
@@ -442,25 +449,25 @@ function createClaim(loc) {
     for (const fn of stepOffs) fn();
     stepOffs = [];
     if (!box) {
-      replace(boxBody, h("p.muted", "The box appears here once you name the account or submit a proof."));
+      replace(boxBody, h("p.muted", "The vault appears here once you name the account or submit a proof."));
       return;
     }
     const me = current().address;
     const bound = box.claimant && box.claimant === me;
     const pendingMine = box.pending && box.pending.claimant === me;
     const state = bound
-      ? h("p.notice.notice-green", "Bound to your wallet. Claim whenever you like; manage the box below.")
+      ? h("p.notice.notice-green", "Bound to your wallet. Claim whenever you like; manage the vault below.")
       : pendingMine
-        ? h("p.notice", `Your claim is pending: this box already had a holder, so the change takes effect ${fmtDateTime(box.pending.effectiveAt)} (${relTime(box.pending.effectiveAt)}) unless they cancel it.`)
+        ? h("p.notice", `Your claim is pending: this vault already had an owner, so the rebind takes effect ${fmtDateTime(box.pending.effectiveAt)} (${relTime(box.pending.effectiveAt)}) unless they cancel it.`)
         : box.claimant
-          ? h("p.notice", "This box is held by ", h("span.mono", short(box.claimant)), ". A new proof requests a change that waits 48 hours; the holder can cancel it.")
-          : h("p.muted", pollTimer ? "Not bound yet. Watching the box (every 6 seconds)…" : "Not bound yet.");
+          ? h("p.notice", "This vault is owned by ", h("span.mono", short(box.claimant)), ". A new proof requests a rebind that waits 48 hours; the owner can cancel it.")
+          : h("p.muted", pollTimer ? "Not bound yet. Watching the vault (every 6 seconds)…" : "Not bound yet.");
     replace(
       boxBody,
       recordCard(box),
       state,
       ownerPanel(box, { refresh: () => loadBox(true), claimHref: "#", inClaim: true, track: stepTrack }),
-      h("p", h("a", { href: vaultPath(box) }, `Open the box page for ${box.display} →`)),
+      h("p", h("a", { href: vaultPath(box) }, `Open the vault page for ${box.display} →`)),
     );
     if (bound || pendingMine) stopPolling();
   }

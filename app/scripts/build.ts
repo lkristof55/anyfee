@@ -73,6 +73,59 @@ async function writePages(meta: esbuild.Metafile, log: boolean): Promise<void> {
   console.log(`  JS gzip: initial ${kb(initial)} + lazy ${kb(lazy)} = ${kb(initial + lazy)}`);
 }
 
+// ---- three.js shaders ------------------------------------------------------------------------------
+// three's WebGLRenderer bundles the GLSL of every built-in material. The diagrams (src/diagrams/gl.js)
+// draw only with MeshBasicMaterial and LineBasic/LineDashedMaterial, whose programs are the
+// ShaderLib "meshbasic" and "linedashed" shaders. Every shader chunk those two #include (resolved
+// recursively from three's own sources, so this follows three upgrades) is kept with comments
+// and indentation stripped; every other chunk becomes an empty string. If the engine ever uses
+// another material, add its ShaderLib file to THREE_SHADERS.
+const THREE_SHADERS = ["meshbasic", "linedashed"];
+const THREE_EXTRA_CHUNKS = ["tonemapping_pars_fragment", "colorspace_pars_fragment"]; // WebGLOutput
+const shaderDir = join(appDir, "..", "node_modules", "three", "src", "renderers", "shaders");
+
+export async function keptThreeChunks(): Promise<Set<string>> {
+  const keep = new Set<string>();
+  const include = /#include +<([\w\d./]+)>/g;
+  const visit = async (text: string) => {
+    for (const [, name] of text.matchAll(include)) {
+      if (keep.has(name)) continue;
+      keep.add(name);
+      await visit(await readFile(join(shaderDir, "ShaderChunk", `${name}.glsl.js`), "utf8"));
+    }
+  };
+  for (const s of THREE_SHADERS) await visit(await readFile(join(shaderDir, "ShaderLib", `${s}.glsl.js`), "utf8"));
+  for (const c of THREE_EXTRA_CHUNKS) await visit(`#include <${c}>`);
+  return keep;
+}
+
+export function minifyGlsl(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .map((l) => l.replace(/\/\/.*$/, "").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function threeShaders(): esbuild.Plugin {
+  let keep: Promise<Set<string>> | null = null;
+  return {
+    name: "three-shaders",
+    setup(b) {
+      b.onLoad({ filter: /[\\/]three[\\/]src[\\/]renderers[\\/]shaders[\\/](ShaderChunk|ShaderLib)[\\/][\w]+\.glsl\.js$/ }, async (a) => {
+        keep ??= keptThreeChunks();
+        const kept = await keep;
+        const [, kind, name] = /(ShaderChunk|ShaderLib)[\\/](\w+)\.glsl\.js$/.exec(a.path)!;
+        const used = kind === "ShaderLib" ? THREE_SHADERS.includes(name) : kept.has(name);
+        const text = await readFile(a.path, "utf8");
+        const contents = text.replace(/`([\s\S]*?)`/g, (_m, body: string) => (used ? "`\n" + minifyGlsl(body) + "\n`" : "``"));
+        return { contents, loader: "js" };
+      });
+    },
+  };
+}
+
 export async function build(opts: { watch?: boolean; log?: boolean } = {}): Promise<void> {
   const log = opts.log ?? true;
   await rm(dist, { recursive: true, force: true });
@@ -109,7 +162,7 @@ export async function build(opts: { watch?: boolean; log?: boolean } = {}): Prom
     define: { "process.env.NODE_ENV": '"production"', global: "globalThis" },
     loader: { ".svg": "text" },
     logLevel: "warning",
-    plugins: [pages],
+    plugins: [threeShaders(), pages],
   };
 
   if (opts.watch) {

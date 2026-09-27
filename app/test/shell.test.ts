@@ -8,7 +8,7 @@ test("renderShell replaces the meta block per route", () => {
   const { status, html } = renderShell(template, "/v/gh/octocat", "https://example.test");
   assert.equal(status, 200);
   assert.ok(!html.includes("<title>old</title>"));
-  assert.match(html, /<title>octocat · anyfee box<\/title>/);
+  assert.match(html, /<title>octocat · anyfee vault<\/title>/);
   assert.match(html, /property="og:image" content="https:\/\/example.test\/og.png"/);
   assert.match(html, /property="og:url" content="https:\/\/example.test\/v\/gh\/octocat"/);
   assert.match(html, /twitter:card" content="summary_large_image"/);

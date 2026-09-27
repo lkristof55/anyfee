@@ -9,7 +9,7 @@
 // tracked in keys/site-test-wallet.funding.json) and keys/attester-devnet.json (signs the
 // attestations pasted in the X-style claim). The test wallet is keys/site-test-wallet.json.
 // Flows:
-//   A  lkristof55/ox81: look it up, connect, tip 0.001 SOL, the box shows the tip and the receipt
+//   A  lkristof55/ox81: look it up, connect, tip 0.001 SOL, the vault shows the tip and the receipt
 //   B  synthetic X id: tip, claim page → paste attestation → bind → claim → close the consumed receipt
 //      → a rebind request for another wallet → the holder cancels it
 //   C  synthetic X id: tip, bind → holder declines → sender refunds
@@ -140,9 +140,9 @@ async function waitToast(page: import("playwright").Page, text: string) {
 async function tip(page: import("playwright").Page, amount: string) {
   await page.fill("#tip-amount", amount);
   const submit = page.locator(".tipform button[type=submit]");
-  await page.waitForFunction((a) => document.querySelector(".tipform button[type=submit]")?.textContent?.includes(`Drop ${a} SOL`), amount);
+  await page.waitForFunction((a) => document.querySelector(".tipform button[type=submit]")?.textContent?.includes(`Send ${a} SOL`), amount);
   await submit.click();
-  await waitToast(page, `Tip of ${amount} SOL delivered`);
+  await waitToast(page, `Tip of ${amount} SOL confirmed`);
 }
 
 /** X-style claim in paste mode: an attestation signed locally with the devnet attester key. */
@@ -174,7 +174,7 @@ try {
   await page.press("#to", "Enter");
   await page.waitForURL("**/v/github/lkristof55/ox81");
   await page.locator(".record-name", { hasText: "lkristof55/ox81" }).waitFor();
-  ok(true, "resolve slid the box out: /v/github/lkristof55/ox81");
+  ok(true, "resolve opened the vault page: /v/github/lkristof55/ox81");
   const [vaultA] = vaultPda(Platform.GithubRepo, 1388837158n);
   const beforeA = await fetchVaultState(conn, Platform.GithubRepo, 1388837158n);
   const countBefore = beforeA.account?.tipCount ?? 0n;
@@ -183,13 +183,13 @@ try {
   await page.locator(".btn-wallet", { hasText: W.slice(0, 4) }).waitFor();
   ok(true, "Wallet Standard test wallet connected");
   await tip(page, "0.001");
-  await page.waitForFunction((n) => document.querySelector(".field-right .amount")?.textContent?.startsWith(String(n)), Number(countBefore + 1n), { timeout: 30_000 });
+  await page.waitForFunction((n) => document.querySelector(".field-tips .amount")?.textContent?.startsWith(String(n)), Number(countBefore + 1n), { timeout: 30_000 });
   ok(true, `vault card shows ${countBefore + 1n} tip(s)`);
   const afterA = await fetchVaultState(conn, Platform.GithubRepo, 1388837158n);
   const tipA = await fetchTip(conn, vaultA, countBefore);
   ok(afterA.account!.tipCount === countBefore + 1n && tipA?.sender.equals(wallet.publicKey) && tipA.amount === 1_000_000n, "on-chain: tip receipt from the test wallet for 0.001 SOL");
-  await page.locator(".panel-mail .receipt", { hasText: "Refund opens" }).first().waitFor({ timeout: 30_000 });
-  ok(true, "“Your mail to this box” lists the receipt with its refund date");
+  await page.locator(".panel-tips .receipt", { hasText: "Refund opens" }).first().waitFor({ timeout: 30_000 });
+  ok(true, "“Your tips to this vault” lists the receipt with its refund date");
   await page.screenshot({ path: join(shots, "vault-after-tip-desktop.png") });
 
   // ---- B: synthetic X identity: tip → paste attestation → bind → claim → close receipt -------------------------------
@@ -213,16 +213,16 @@ try {
   ok((await conn.getBalance(wallet.publicKey)) - balBeforeClaim > 1_990_000, "the claim paid the 0.002 SOL tip back to the claimant");
   step = "B close_tip (consumed receipt)";
   await page.goto(`${BASE}/v/id/x/${idB}`);
-  await page.locator(".panel-mail .receipt", { hasText: "Delivered" }).waitFor({ timeout: 30_000 });
-  await page.locator(".panel-mail button", { hasText: "Close receipt" }).click();
+  await page.locator(".panel-tips .receipt", { hasText: "Claimed by owner" }).waitFor({ timeout: 30_000 });
+  await page.locator(".panel-tips button", { hasText: "Close receipt" }).click();
   await waitToast(page, "Receipt closed");
   ok((await conn.getAccountInfo(tipPda(vaultPda(Platform.X, idB)[0], 0n)[0])) === null, "on-chain: consumed receipt closed, deposit returned");
   step = "B ed25519 + bind for another wallet (rebind request)";
   const intruder = Keypair.generate().publicKey;
-  await pasteBind(page, idB, intruder, "Change of holder requested");
+  await pasteBind(page, idB, intruder, "Rebind requested");
   step = "B cancel_rebind";
   await page.goto(`${BASE}/v/id/x/${idB}`);
-  await page.locator(".record .stamp", { hasText: "Change pending" }).waitFor({ timeout: 30_000 });
+  await page.locator(".readout .readout-tag", { hasText: "Rebind pending" }).waitFor({ timeout: 30_000 });
   await page.locator(".panel-owner button", { hasText: "Cancel the change" }).click();
   await waitToast(page, "Change of claimant cancelled");
   const sB2 = await fetchVaultState(conn, Platform.X, idB);
@@ -246,9 +246,9 @@ try {
   await page.locator(".panel-owner button", { hasText: "Decline tips for good" }).click();
   await waitToast(page, "Tips declined");
   step = "C refund_tip (permissionless crank)";
-  await page.locator(".panel-mail .receipt", { hasText: "refundable now" }).waitFor({ timeout: 30_000 });
-  await page.locator(".stamp", { hasText: "Return to sender" }).first().waitFor();
-  await page.locator(".panel-mail button", { hasText: "Refund" }).click();
+  await page.locator(".panel-tips .receipt", { hasText: "refundable now" }).waitFor({ timeout: 30_000 });
+  await page.locator(".readout-tag", { hasText: "Declined" }).first().waitFor();
+  await page.locator(".panel-tips button", { hasText: "Refund" }).click();
   await waitToast(page, "Refund sent back to you");
   const sC = await fetchVaultState(conn, Platform.X, idC);
   ok(sC.account?.declined && sC.account.outstandingTipLamports === 0n, "on-chain: declined, refund returned the tip (nothing outstanding)");
@@ -266,7 +266,7 @@ try {
     ["claim-x", "/claim?type=x"],
     ["how", "/how"],
     ["faq", "/faq"],
-    ["404", "/no/such/box"],
+    ["404", "/no/such/vault"],
   ];
   for (const [label, viewport, scale] of [
     ["desktop", { width: 1440, height: 900 }, 1],
@@ -280,7 +280,7 @@ try {
     for (const [name, path] of pages) {
       expect404 = name === "404";
       const resp = await p.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
-      if (name === "404") ok(resp?.status() === 404 && (await p.locator(".page-404").count()) === 1, `${label}: unknown path answers 404 with the in-character page`);
+      if (name === "404") ok(resp?.status() === 404 && (await p.locator(".page-404").count()) === 1, `${label}: unknown path answers 404 with the not-found page`);
       await p.waitForTimeout(name.startsWith("vault") || name === "home" ? 2600 : 900);
       await p.screenshot({ path: join(shots, `${name}-${label}.png`), fullPage: name !== "home" });
       expect404 = false;
@@ -297,7 +297,7 @@ try {
 
 log("\ndevnet transactions signed by the test wallet:");
 for (const t of txs) log(`  ${t.step}: https://explorer.solana.com/tx/${t.sig}?cluster=devnet`);
-log(`test wallet spent ${sol(startBalance - (await conn.getBalance(wallet.publicKey)))} SOL this run (rent left in the new boxes, the ox81 tip + its receipt deposit, fees)`);
+log(`test wallet spent ${sol(startBalance - (await conn.getBalance(wallet.publicKey)))} SOL this run (rent left in the new vaults, the ox81 tip + its receipt deposit, fees)`);
 if (problems.length) {
   console.error(`\n${problems.length} problem(s):\n${problems.join("\n")}`);
   process.exit(1);

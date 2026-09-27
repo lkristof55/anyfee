@@ -82,32 +82,32 @@ export function routeMeta(pathname) {
     case "home":
       return {
         status: 200,
-        title: "anyfee — every account already has a P.O. box",
-        description: `Tip any GitHub repo, GitHub user or X account in SOL or USDC, or route pump.fun and Bags creator fees to it. The owner claims by proving control; unclaimed tips go back to the sender after 30 days. ${tail}`,
+        title: "anyfee — a Solana vault for every GitHub repo, user and X account",
+        description: `Send SOL and USDC to any GitHub repo, GitHub user or X account, or route pump.fun and Bags creator fees to it, before they sign up. The owner claims by proving control; unclaimed tips go back to the sender after 30 days. ${tail}`,
       };
     case "claim":
       return {
         status: 200,
-        title: "Claim your box · anyfee",
-        description: `Prove you control a GitHub repository, GitHub account or X account and bind its anyfee box to your Solana wallet. ${tail}`,
+        title: "Claim a vault · anyfee",
+        description: `Prove you control a GitHub repository, GitHub account or X account and bind its anyfee vault to your Solana wallet. ${tail}`,
       };
     case "how":
       return {
         status: 200,
         title: "How it works · anyfee",
-        description: `How anyfee boxes are derived, how claims are proven, and what the attester and admin can and cannot do. ${tail}`,
+        description: `How anyfee vaults are derived, funded, claimed and refunded, and what the attester and admin can and cannot do. ${tail}`,
       };
     case "faq":
-      return { status: 200, title: "Questions · anyfee", description: `Straight answers about anyfee boxes, refunds, fees and trust. ${tail}` };
+      return { status: 200, title: "FAQ · anyfee", description: `Straight answers about anyfee vaults, refunds, creator fees and trust. ${tail}` };
     case "vault": {
       const what = r.kind === "id" ? r.label : `${platformLabel(r.platformName)} ${r.label}`;
       return {
         status: 200,
-        title: `${r.label} · anyfee box`,
-        description: `The anyfee box of the ${what}. Anyone can tip it or route creator fees to it; the owner claims by proving control. Unverified until claimed, not an endorsement. ${tail}`,
+        title: `${r.label} · anyfee vault`,
+        description: `The anyfee vault of the ${what}. Anyone can tip it or route creator fees to it; the owner claims by proving control. Unverified until claimed, not an endorsement; the recipient may decline. ${tail}`,
       };
     }
     default:
-      return { status: 404, title: "No such box · anyfee", description: `Return to sender: this address has no box. ${tail}` };
+      return { status: 404, title: "No vault here · anyfee", description: `This address has no vault page. ${tail}` };
   }
 }

@@ -34,8 +34,20 @@ test("vaultPath / idPath: canonical, shareable paths", () => {
 test("routeMeta: honest titles, 404 for unknown paths", () => {
   const m = routeMeta("/v/github/octocat/Hello-World");
   assert.equal(m.status, 200);
-  assert.match(m.title, /octocat\/Hello-World/);
+  assert.match(m.title, /octocat\/Hello-World · anyfee vault/);
   assert.match(m.description, /Unverified until claimed, not an endorsement/);
+  assert.match(m.description, /may decline/);
   assert.match(m.description, /Devnet only/);
   assert.equal(routeMeta("/nope").status, 404);
+});
+
+test("routeMeta: every page speaks of vaults (no P.O.-box copy), states devnet, never lures", () => {
+  for (const p of ["/", "/claim", "/how", "/faq", "/v/x/jack", "/v/gh/octocat", "/v/id/github-repo/1296269", "/nope"]) {
+    const { title, description } = routeMeta(p);
+    const text = `${title} ${description}`;
+    assert.doesNotMatch(text, /\bbox(es)?\b|P\.O\.|lobby|return to sender/i, p);
+    assert.match(description, /Devnet only/, p);
+    assert.doesNotMatch(text, /claim your (funds|money)|unclaimed balance/i, p);
+  }
+  assert.match(routeMeta("/").description, /creator fees/);
 });

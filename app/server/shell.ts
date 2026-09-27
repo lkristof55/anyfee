@@ -28,7 +28,7 @@ export function metaTags(pathname: string, origin: string | undefined): { status
     `<meta property="og:image" content="${escapeHtml(image)}">`,
     `<meta property="og:image:width" content="1200">`,
     `<meta property="og:image:height" content="630">`,
-    `<meta property="og:image:alt" content="A wall of numbered brass P.O. boxes, one pulled out.">`,
+    `<meta property="og:image:alt" content="Diagram: creator fees and tips flow into an account's vault; the owner proves control and withdraws.">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${t}">`,
     `<meta name="twitter:description" content="${d}">`,

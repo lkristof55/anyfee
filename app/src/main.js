@@ -6,15 +6,14 @@ import { matchRoute, routeMeta } from "./routes.js";
 import { startRouter } from "./router.js";
 import { mountWalletButton } from "./ui/walletui.js";
 import { leaveClaim, renderClaim } from "./views/claim.js";
-import { leaveLobby, renderLobby } from "./views/lobby.js";
+import { leaveLookup, renderLookup } from "./views/lookup.js";
 import { renderFaq, renderHow, renderNotFound } from "./views/pages.js";
-import { wall } from "./wall/index.js";
 
 const main = document.getElementById("main");
 let lastView = null;
 
 function setNav(pathname) {
-  for (const a of document.querySelectorAll(".nav a")) {
+  for (const a of document.querySelectorAll(".nav a:not([target])")) {
     const href = a.getAttribute("href");
     const on = href === "/" ? pathname === "/" || pathname.startsWith("/v/") : pathname.startsWith(href);
     if (on) a.setAttribute("aria-current", "page");
@@ -24,14 +23,14 @@ function setNav(pathname) {
 
 function render(loc, how = {}) {
   const route = matchRoute(loc.pathname);
-  const view = route.name === "home" || route.name === "vault" ? "lobby" : route.name;
-  if (view !== "lobby") leaveLobby();
+  const view = route.name === "home" || route.name === "vault" ? "lookup" : route.name;
+  if (view !== "lookup") leaveLookup();
   if (view !== "claim") leaveClaim();
   document.title = routeMeta(loc.pathname).title;
   setNav(loc.pathname);
   switch (view) {
-    case "lobby":
-      renderLobby(main, route);
+    case "lookup":
+      renderLookup(main, route);
       break;
     case "claim":
       renderClaim(main, loc);
@@ -45,12 +44,12 @@ function render(loc, how = {}) {
     default:
       renderNotFound(main);
   }
-  document.body.dataset.view = view;
+  document.body.dataset.view = view === "lookup" ? route.name : view;
   if (view !== lastView && !how.initial && !how.pop) {
     window.scrollTo({ top: 0 });
     main.focus({ preventScroll: true });
   }
-  if (loc.hash && view !== "lobby") document.getElementById(loc.hash.slice(1))?.scrollIntoView();
+  if (loc.hash && view !== "lookup") document.getElementById(loc.hash.slice(1))?.scrollIntoView();
   lastView = view;
 }
 
@@ -58,7 +57,6 @@ mountWalletButton(document.getElementById("wallet-slot"));
 initWallet();
 startRouter(render);
 window.__ready = true;
-window.__anyfee = { wall }; // used by scripts/render-og.ts
 
 cluster().then((c) => {
   setCluster(c);

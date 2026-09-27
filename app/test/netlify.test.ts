@@ -23,7 +23,7 @@ test("Netlify vault-page function: per-path meta on the built shell", async () =
     assert.equal(config.path, "/v/*");
     const r = await page(new Request("https://site.test/v/x/jack"));
     assert.equal(r.status, 200);
-    assert.match(await r.text(), /<title>@jack · anyfee box<\/title>/);
+    assert.match(await r.text(), /<title>@jack · anyfee vault<\/title>/);
     const missing = await page(new Request("https://site.test/v/github/nope"));
     assert.equal(missing.status, 404);
   } finally {

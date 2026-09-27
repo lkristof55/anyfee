@@ -4,14 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <!--meta:start--><!--meta:end-->
-    <meta name="theme-color" content="#16211c">
-    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0c0d0d" media="(prefers-color-scheme: dark)">
+    <meta name="color-scheme" content="light dark">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="preload" href="/fonts/big-shoulders-display.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/fonts/public-sans.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/fonts/ibm-plex-mono-500.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="%CSS%">
     %PRELOADS%
     <script type="module" src="%JS%"></script>
@@ -19,35 +19,44 @@
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <div class="devnet" role="note">
-      <span class="devnet-name">DEVNET</span>
-      <span class="devnet-text">Test network only. No real funds.<span class="devnet-more"> Unaudited program.</span></span>
+      <div class="wrap devnet-inner">
+        <span class="devnet-name">Devnet</span>
+        <span class="devnet-text">Test network only. No real funds.<span class="devnet-more"> Unaudited program.</span></span>
+      </div>
     </div>
     <header class="masthead">
-      <a class="brand" href="/" aria-label="anyfee, home">
-        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect x="2.5" y="5.5" width="27" height="21" rx="2.5" fill="currentColor"/><rect x="5.5" y="8.5" width="10" height="15" rx="0.6" fill="#16211c"/><rect x="9" y="8.5" width="1.2" height="15" fill="currentColor" opacity=".55"/><rect x="18.5" y="8.5" width="8" height="2.2" rx="0.5" fill="#16211c"/><circle cx="22.5" cy="18.6" r="3.4" fill="none" stroke="#16211c" stroke-width="1.7"/><circle cx="22.5" cy="18.6" r="1" fill="#16211c"/></svg>
-        <span class="brand-word">anyfee</span>
-      </a>
-      <nav class="nav" aria-label="Main">
-        <a href="/">Send</a>
-        <a href="/claim">Claim</a>
-        <a href="/how">How it works</a>
-        <a href="/faq">Questions</a>
-      </nav>
-      <div class="wallet-slot" id="wallet-slot"><button class="btn btn-wallet" type="button" disabled>Connect wallet</button></div>
+      <div class="wrap masthead-inner">
+        <a class="brand" href="/" aria-label="anyfee, home">
+          <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.8 20.4 7.4v9.2L12 21.2 3.6 16.6V7.4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3.6 7.4 12 12l8.4-4.6M12 12v9.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 12v9.2l8.4-4.6V7.4Z" class="brand-mark-face"/></svg>
+          <span class="brand-word">anyfee</span>
+        </a>
+        <nav class="nav" aria-label="Main">
+          <a href="/" class="nav-find">Find</a>
+          <a href="/claim">Claim</a>
+          <a href="/how">How<span class="nav-long"> it works</span></a>
+          <a href="/faq">FAQ</a>
+          <a href="https://github.com/lkristof55/anyfee" class="nav-gh" target="_blank" rel="noopener">GitHub&nbsp;↗</a>
+        </nav>
+        <div class="wallet-slot" id="wallet-slot"><button class="btn btn-wallet" type="button" disabled>Connect<span class="nav-long"> wallet</span></button></div>
+      </div>
     </header>
     <main id="main" tabindex="-1">
       <noscript>
-        <div class="page"><p class="lede">anyfee reads the Solana chain and talks to your wallet from this page, so it needs JavaScript. The protocol and the SDK are documented in the repository (docs/SPEC.md).</p></div>
+        <div class="wrap page"><p class="lede">anyfee reads the Solana chain and talks to your wallet from this page, so it needs JavaScript. The protocol and the SDK are documented in the repository (docs/SPEC.md).</p></div>
       </noscript>
     </main>
     <footer class="colophon">
-      <div class="colophon-inner">
-        <p class="colophon-brand"><span class="brand-word">anyfee</span> P.O. boxes for GitHub and X accounts, on Solana devnet.</p>
-        <p class="colophon-fine">A box is unverified until claimed and is not an endorsement by the account it belongs to. Direct tips return to their senders after 30 days unclaimed. The attester can bind a box, never withdraw from one. Devnet only: no real funds, unaudited, open source (Apache-2.0).</p>
+      <div class="wrap colophon-inner">
+        <div class="colophon-brand">
+          <p class="brand-word">anyfee</p>
+          <p class="label">Solana vaults for GitHub and X accounts · devnet</p>
+        </div>
+        <p class="colophon-fine">A vault is unverified until claimed and is not an endorsement by the account it belongs to; the recipient may decline. Direct tips return to their senders after 30 days unclaimed. Creator fees have no single sender and wait for the owner. The attester can bind a vault, never withdraw from one. anyfee has no token. Devnet only: no real funds, unaudited, open source (Apache-2.0).</p>
         <nav class="colophon-nav" aria-label="Footer">
+          <a href="/claim">Claim a vault</a>
           <a href="/how">How it works</a>
-          <a href="/faq">Questions</a>
-          <a href="/claim">Claim a box</a>
+          <a href="/faq">FAQ</a>
+          <a href="https://github.com/lkristof55/anyfee" target="_blank" rel="noopener">Source on GitHub ↗</a>
           <a href="https://explorer.solana.com/address/BixfaA4JmPvntZvGZwnqhHdoUQvEzZY6ZBMXCLgF3C9M?cluster=devnet" target="_blank" rel="noopener">Program on Explorer ↗</a>
         </nav>
       </div>

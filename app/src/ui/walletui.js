@@ -158,7 +158,7 @@ export function mountWalletButton(slot) {
       btn.setAttribute("aria-label", `Wallet ${s.address}. Open wallet menu`);
     } else {
       setOpen(false);
-      replace(btn, "Connect wallet");
+      replace(btn, "Connect", h("span.nav-long", " wallet"));
       btn.removeAttribute("aria-label");
     }
   });
