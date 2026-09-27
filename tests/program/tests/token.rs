@@ -251,7 +251,10 @@ fn compute_units_stay_modest() {
     };
     rec("init_vault", assert_ok(env.init_vault(&payer, P, ID + 1)));
     rec("tip_sol", assert_ok(env.tip_sol(&sender, P, ID, 1_000_000)));
-    rec("tip_token (creates ATA)", assert_ok(env.tip_token(&sender, P, ID, USDC)));
+    rec(
+        "tip_token (creates ATA)",
+        assert_ok(env.tip_token(&sender, P, ID, USDC)),
+    );
     rec("tip_token", assert_ok(env.tip_token(&sender, P, ID, USDC)));
     rec(
         "ed25519 + bind",
@@ -263,14 +266,26 @@ fn compute_units_stay_modest() {
         assert_ok(env.bind_as_attester(&payer, P, ID, &other.pubkey())),
     );
     rec("cancel_rebind", assert_ok(env.cancel_rebind(&owner, P, ID)));
-    rec("claim_sol", assert_ok(env.claim_sol(&owner, P, ID, &owner.pubkey())));
+    rec(
+        "claim_sol",
+        assert_ok(env.claim_sol(&owner, P, ID, &owner.pubkey())),
+    );
     let dest = env.mint_usdc_to(&owner.pubkey(), 0);
-    rec("claim_token", assert_ok(env.claim_token(&owner, P, ID, &dest)));
-    rec("close_tip", assert_ok(env.close_tip(&payer, P, ID, 0, &sender.pubkey())));
+    rec(
+        "claim_token",
+        assert_ok(env.claim_token(&owner, P, ID, &dest)),
+    );
+    rec(
+        "close_tip",
+        assert_ok(env.close_tip(&payer, P, ID, 0, &sender.pubkey())),
+    );
     assert_ok(env.tip_sol(&sender, P, ID, 1_000_000));
     assert_ok(env.tip_token(&sender, P, ID, USDC));
     rec("decline", assert_ok(env.decline(&owner, P, ID)));
-    rec("refund_tip", assert_ok(env.refund_tip(&payer, P, ID, 3, &sender.pubkey())));
+    rec(
+        "refund_tip",
+        assert_ok(env.refund_tip(&payer, P, ID, 3, &sender.pubkey())),
+    );
     rec(
         "refund_tip_token",
         assert_ok(env.refund_tip_token(&payer, P, ID, 4, &sender.pubkey())),

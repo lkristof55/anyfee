@@ -32,7 +32,11 @@ fn read_keypair(path: &str) -> Keypair {
         .trim_start_matches('[')
         .trim_end_matches(']')
         .split(',')
-        .map(|b| b.trim().parse::<u8>().expect("keypair file must be a JSON byte array"))
+        .map(|b| {
+            b.trim()
+                .parse::<u8>()
+                .expect("keypair file must be a JSON byte array")
+        })
         .collect();
     Keypair::try_from(bytes.as_slice()).expect("invalid keypair bytes")
 }
@@ -86,7 +90,12 @@ fn smoke(rpc: &RpcClient, admin: &Keypair, attester: &Keypair) {
     let before = rpc.get_balance(&claimant.pubkey()).expect("balance");
     send(
         rpc,
-        &[ix_claim_sol(&claimant.pubkey(), platform, id, &claimant.pubkey())],
+        &[ix_claim_sol(
+            &claimant.pubkey(),
+            platform,
+            id,
+            &claimant.pubkey(),
+        )],
         &[&claimant],
     );
     let after = rpc.get_balance(&claimant.pubkey()).expect("balance");
