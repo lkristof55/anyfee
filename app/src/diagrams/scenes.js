@@ -11,6 +11,8 @@
 // Labels: { id, at, text (upper-cased keyword), sub? (data, shown as is), anchor: "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw", o?, tone? }
 // Colour: accent is money on the move (tokens, a vault's contents); ink is identity and proof.
 
+import { BASE } from "./iso.js";
+
 const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const seg = (t, a, b) => clamp01((t - a) / (b - a));
 export const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
@@ -387,4 +389,92 @@ const vaultScene = {
   },
 };
 
-export const SCENES = { hero, derive, fund, claim, refund, vault: vaultScene };
+// ---- $ANYFEE: a coin -> a fixed splitter -> one vault per share ------------------------------------------
+
+/** World point on the floor under a screen position (camera at yaw 45). */
+function floorAt(X, Y) {
+  const a = X / BASE.right[0]; // x - z
+  const b = -Y / -BASE.up[0]; // x + z
+  return [(a + b) / 2, 0, (b - a) / 2];
+}
+
+/** Smooth weighted round-robin: a fair repeating order of recipients for the given weights. */
+export function splitOrder(weights, length) {
+  const current = weights.map(() => 0);
+  const total = weights.reduce((a, w) => a + w, 0);
+  const out = [];
+  for (let n = 0; n < length; n++) {
+    let best = 0;
+    for (let i = 0; i < weights.length; i++) {
+      current[i] += weights[i];
+      if (current[i] > current[best]) best = i;
+    }
+    current[best] -= total;
+    out.push(best);
+  }
+  return out;
+}
+
+const DEFAULT_SHARES = [
+  { label: "50%", name: "anyfee", bps: 5000 },
+  ...["anchor", "solana-web3.js", "noble-curves", "litesvm", "three.js"].map((name) => ({ label: "10%", name, bps: 1000 })),
+];
+
+const split = {
+  name: "split",
+  frame: { w: 7.4, h: 6.0, cx: -0.05, cy: 0.25 },
+  T: 12,
+  loop: true,
+  build(t, p = {}, { static: still = false } = {}) {
+    const shares = p.shares?.length ? p.shares : DEFAULT_SHARES;
+    const n = shares.length;
+    const V = 0.48; // on-screen height 0.76: a clear gap between neighbours in the column
+    const gap = Math.min(0.9, 4.5 / Math.max(n - 1, 1));
+    const top = ((n - 1) * gap) / 2 + 0.2;
+    const vaults = shares.map((_, k) => floorAt(1.05, top - k * gap));
+    const coinAt = floorAt(-2.85, 0.35);
+    const splitAt = floorAt(-0.95, 0.35);
+    const y = TOKEN / 2;
+    const lift = (q) => [q[0], y, q[2]];
+    const L = 20; // one round of the order, spread over the loop
+    const order = splitOrder(shares.map((s) => s.bps), L);
+    const maxCount = Math.max(...shares.map((_, k) => order.filter((d) => d === k).length));
+    const inPath = [lift(mix(coinAt, splitAt, 0.2)), lift(splitAt)];
+    const counts = shares.map(() => 0);
+    const tokens = [];
+    if (still) {
+      order.forEach((d) => counts[d]++);
+      counts.forEach((c, k) => (counts[k] = c * 0.62));
+      tokens.push(...frozen("in", [0.45], ...inPath));
+      shares.forEach((_, k) => tokens.push(token(`b${k}`, mix(lift(splitAt), lift(vaults[k]), k === 0 ? 0.55 : 0.5))));
+    } else {
+      const drain = 1 - ease(seg(t, 11.1, 11.9));
+      for (let j = 0; j < L; j++) {
+        const s0 = 0.2 + j * 0.45; // the last cube lands at ~10.2 s; the full split holds until the drain
+        const u1 = (t - s0) / 0.55;
+        const u2 = (t - s0 - 0.55) / 0.85;
+        if (u1 > 0 && u1 < 1) tokens.push(token(`t${j}`, mix(...inPath, ease(u1))));
+        else if (u2 > 0 && u2 < 1) tokens.push(token(`t${j}`, mix(lift(splitAt), lift(vaults[order[j]]), ease(u2))));
+        else if (u2 >= 1) counts[order[j]] += drain;
+      }
+    }
+    const prims = [
+      grid("grid", -4, 3, -3, 4, 1),
+      trace("t.in", [mix(coinAt, splitAt, 0.2), splitAt]),
+      ...vaults.map((v, k) => trace(`t.b${k}`, [splitAt, mix(splitAt, v, 0.92)])),
+      ...coin("coin", coinAt, 3, 0.42),
+      { id: "splitter", k: "box", c: [splitAt[0], 0.16, splitAt[2]], s: [0.62, 0.32, 0.62], m: "paper" },
+      { id: "splitter.top", k: "box", c: [splitAt[0], 0.345, splitAt[2]], s: [0.34, 0.05, 0.34], m: "ink" },
+      ...vaults.flatMap((v, k) => vault(`v${k}`, v, V, { fill: (0.9 * counts[k]) / maxCount })),
+      ...tokens,
+    ];
+    const labels = [
+      { id: "coin", at: discTop(coinAt, 0.42, 0.45), text: p.ticker ?? "$ANYFEE", sub: "creator fees", anchor: "n" },
+      { id: "split", at: bottomOf(splitAt, 0.62), text: "fixed split", sub: "set once at launch", anchor: "sw" },
+      ...shares.map((s, k) => ({ id: `v${k}`, at: rightOf(vaults[k], V, V * 0.5), text: s.label, sub: s.name, anchor: "e" })),
+    ];
+    return { prims, labels, phase: -1 };
+  },
+};
+
+export const SCENES = { hero, derive, fund, claim, refund, vault: vaultScene, split };

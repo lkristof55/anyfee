@@ -344,7 +344,7 @@ export function feePanel(res) {
     h(
       "ul.fine",
       h("li", "Fees have no single sender, so they are ", h("strong", "never refunded"), ". They wait in the vault until the owner claims it, which may be never."),
-      h("li", "Routing fees here is not an endorsement: the account's owner has not agreed to your coin. anyfee has no token of its own."),
+      h("li", "Routing fees here is not an endorsement: the account's owner has not agreed to your coin."),
       h("li", `If fees arrive before anyone opens the vault on-chain, the first ${sol(rent || 1_437_640n, 5)} SOL become the vault's rent. Every later claim leaves exactly that rent behind.`),
       h("li", "Only SOL and the program's USDC mint (", h("code.mono", short(res.balances?.usdc?.mint ?? "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU", 6)), ") can be claimed. Any other token sent here is stuck forever."),
       h("li", h("strong", "Devnet only. "), "anyfee is not deployed on mainnet. Do not put this address into a mainnet coin: funds there would sit unclaimable until a mainnet program exists."),

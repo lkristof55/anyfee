@@ -1,13 +1,14 @@
 // Home ("/") and every vault page ("/v/…") share one view: the finder stays mounted while the
 // page switches between the introduction and a vault's readout, so looking something up never
 // reloads the page or loses the field's focus.
-import { parseTarget } from "@anyfee/sdk";
+import { Platform, parseTarget, vaultPda } from "@anyfee/sdk";
 import { copyButton, h, replace } from "../lib/dom.js";
 import { ApiError, resolve, xProfile } from "../lib/api.js";
 import { idPath, platformLabel, vaultPath } from "../routes.js";
 import { navigate } from "../router.js";
 import { diagram } from "../diagrams/index.js";
 import { COIN_NOTES, COIN_STEPS, FLOW, HERO, REPO_URL, STEPS, TRUST } from "../content.js";
+import { RECIPIENTS, STATUS, TICKER, TOKEN_COPY, pct, repoName } from "../token.js";
 import { short, toBig } from "../lib/format.js";
 import { DERIVE_PARAMS, EXAMPLE_ID, EXAMPLE_REPO, EXAMPLE_VAULT } from "../lib/example.js";
 import { feePanel, ownerPanel, recordCard, senderPanel, statusOf, tipForm, trustNotes } from "./parts.js";
@@ -353,6 +354,7 @@ function homeBelow(owned) {
         ),
       ),
     ),
+    tokenSection(owned),
     h(
       "section.wrap.band.coins-band",
       { "aria-labelledby": "coins-title" },
@@ -386,5 +388,46 @@ function homeBelow(owned) {
       h("a.next-link", { href: "/faq" }, h("span.label", "Answers"), h("span.next-t", "FAQ"), h("span.next-a", { "aria-hidden": "true" }, "→")),
       h("a.next-link", { href: REPO_URL, target: "_blank", rel: "noopener" }, h("span.label", "Source"), h("span.next-t", "GitHub"), h("span.next-a", { "aria-hidden": "true" }, "↗")),
     ),
+  );
+}
+
+// ---- $ANYFEE: the planned coin and its fixed fee split (data in src/token.js) --------------------
+
+function tokenSection(owned) {
+  const rows = RECIPIENTS.map((r) => {
+    const vault = vaultPda(Platform.GithubRepo, BigInt(r.id))[0].toBase58();
+    const [owner, repo] = r.slug.split("/");
+    return h(
+      "tr",
+      h("th", { scope: "row" }, h("a", { href: `/v/github/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}` }, r.slug), h("small.muted.block.mono", `repository id ${r.id}`)),
+      h("td.token-share", pct(r.bps)),
+      h("td.token-vault", h("code.mono", { title: vault }, short(vault, 6)), copyButton(vault, "Copy")),
+      h("td.token-why", r.reason),
+    );
+  });
+  const shares = RECIPIENTS.map((r) => ({ label: pct(r.bps), name: repoName(r.slug), bps: r.bps }));
+  const fig = diagram("split", { shares, ticker: TICKER }, { keep: true, label: TOKEN_COPY.figure, className: "dg-token" });
+  owned.push(fig);
+  return h(
+    "section#anyfee-coin.wrap.band.token-band",
+    { "aria-labelledby": "token-title" },
+    h(
+      "header.section-head",
+      h("p.label.token-label", h("span.token-ticker", TICKER), h("span.tag.tag-accent", STATUS)),
+      h("h2#token-title.section-title", TOKEN_COPY.title),
+      h("p.section-lede", TOKEN_COPY.function),
+    ),
+    h(
+      "div.token-grid",
+      h("figure.token-fig", fig.el, h("figcaption.mono", "creator fees → fixed split → repository vaults")),
+      h("dl.token-status", TOKEN_COPY.status.map(([k, v]) => h("div", h("dt", k), h("dd", v)))),
+    ),
+    h(
+      "table.token-table",
+      h("caption.visually-hidden", `${TICKER} creator-fee split`),
+      h("thead", h("tr", h("th", { scope: "col" }, "Repository"), h("th", { scope: "col" }, "Share"), h("th", { scope: "col" }, "Vault"), h("th", { scope: "col" }, "Why"))),
+      h("tbody", rows),
+    ),
+    h("p.small.muted.token-note", "Each share is keyed by the repository's permanent numeric id, so the list stays valid through renames and transfers. Each vault address is derived in your browser from that id."),
   );
 }

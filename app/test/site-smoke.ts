@@ -14,6 +14,7 @@ import { Keypair } from "@solana/web3.js";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { build } from "../scripts/build.ts";
+import { RECIPIENTS, STATUS } from "../src/token.js";
 import { CHROMIUM_ARGS, loadPlaywright } from "./playwright.ts";
 
 const appDir = new URL("..", import.meta.url).pathname;
@@ -130,6 +131,19 @@ try {
             return n / (c.width * c.height);
           });
           ok(drawn > 0.05, `${label} ${scheme}: the hero diagram renders with WebGL (${(drawn * 100).toFixed(0)}% of pixels drawn)`);
+          const coin = await page.evaluate(() => {
+            const s = document.querySelector("#anyfee-coin")!;
+            return {
+              rows: s.querySelectorAll(".token-table tbody tr").length,
+              links: [...s.querySelectorAll(".token-table tbody th a")].map((a) => a.getAttribute("href")),
+              status: s.querySelector(".token-label .tag")?.textContent,
+              statusVisible: (s.querySelector(".token-status > div dd") as HTMLElement)?.offsetHeight > 0,
+              text: s.textContent ?? "",
+            };
+          });
+          ok(coin.rows === RECIPIENTS.length && coin.links.every((h) => h?.startsWith("/v/github/")), `${label} ${scheme}: $ANYFEE split table lists ${coin.rows} vaults, each linking to its vault page`);
+          ok(coin.status === STATUS && coin.statusVisible, `${label} ${scheme}: $ANYFEE status "${coin.status}" is shown in the section`);
+          ok(!/\bbuy\b|\bprice\b|market cap/i.test(coin.text), `${label} ${scheme}: no buy button, price or market cap`);
         }
         await page.close();
       }

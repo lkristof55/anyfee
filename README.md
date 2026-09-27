@@ -409,7 +409,9 @@ the grid. Small isometric three.js diagrams explain the mechanism: the home page
 shows the whole flow (a coin's creator fees and tips flow into a vault keyed by platform and id,
 a GitHub OIDC proof reaches it, the funds move to the owner's wallet), and "How it works" has
 one glyph per step (derive, fund, claim, refund). It runs on **devnet only** and says so on
-every page.
+every page. The home page also describes the planned (not launched) $ANYFEE coin, whose creator
+fees go by a fixed split to the vaults of the open-source repositories anyfee is built on; the
+split lives in one place, `app/src/token.js`, keyed by permanent repository ids.
 
 | Route | Page |
 |---|---|

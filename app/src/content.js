@@ -1,7 +1,9 @@
 // Static copy for the home, /how and /faq pages. Pure data (no DOM) so tests can hold it to the
 // product's honesty rules: unverified until claimed, not an endorsement, the recipient may
 // decline, direct tips refund after 30 days, routed fees have no single sender, devnet only, no
-// "claim your funds" lures, and no token of anyfee's own.
+// "claim your funds" lures, no investment language. The planned coin's own copy and fee split
+// live in token.js; its ticker appears only in that home section and the FAQ entries below.
+import { RECIPIENTS, STATUS, TICKER, pct, repoName } from "./token.js";
 
 export const REPO_URL = "https://github.com/lkristof55/anyfee";
 
@@ -69,7 +71,6 @@ export const COIN_STEPS = [
 export const COIN_NOTES = [
   "Fees have no single sender, so they are never refunded. They wait in the vault for the owner, possibly forever.",
   "Routing fees to a vault is not an endorsement: the project has not agreed to your coin.",
-  "anyfee has no token of its own.",
   "Devnet only for now: do not route real mainnet fees to a vault yet.",
 ];
 
@@ -82,13 +83,42 @@ export const TRUST = [
   { title: "Devnet only", body: "Test network, test money, unaudited program. No mainnet deployment." },
 ];
 
+const [lead, ...rest] = RECIPIENTS;
+const shareList = `${pct(lead.bps)} to ${lead.slug} (${lead.reason}) and ${rest.map((r) => `${pct(r.bps)} to ${repoName(r.slug)}`).join(", ")}`;
+
+/** FAQ ids that may name the planned coin (tests enforce that nothing else does). */
+export const TOKEN_QA_IDS = ["anyfee-coin", "coin-fees", "coin-split", "coin-unclaimed"];
+
+const TOKEN_QA = [
+  [
+    "anyfee-coin",
+    `What is ${TICKER}?`,
+    `A planned pump.fun coin (${STATUS.toLowerCase()}). Its creator fees are split by a fixed share list among the anyfee vaults of ${RECIPIENTS.length} GitHub repositories: anyfee itself and open-source projects anyfee is built on. It is a live demo of the protocol, where every trade funds open source, and it has no other function: no staking, no governance, no burn, and holders receive nothing from the fees. It is not an investment. Launch waits for the mainnet program and an audit; anyfee is devnet only today, and no coin exists yet.`,
+  ],
+  [
+    "coin-fees",
+    "Where do its fees go?",
+    `pump.fun pays a coin's creator fees to the shareholders of its fee-sharing config. For ${TICKER} those shareholders will be anyfee vaults: ${shareList}. Each vault is derived from the repository's permanent numeric id, and each project's maintainers can claim their share by proving control, like any other vault. The list is on the home page.`,
+  ],
+  [
+    "coin-split",
+    "Can the split change?",
+    `Before launch, yes: the list is published on the home page and can still be edited there. At launch it is set once in pump.fun's creator-fee sharing config. According to pump.fun's public documentation, only the config's admin (at first, the coin's creator) can set the shareholders, the update can be made only once, and it revokes the admin, so nobody can change the split afterwards; anyone can compare the on-chain config with the published list. pump.fun runs its own program and could change how its fee sharing works; that is outside anyfee's control.`,
+  ],
+  [
+    "coin-unclaimed",
+    "What if a project never claims?",
+    "Its share waits in its vault. Creator fees have no single sender, so they are never refunded or redistributed: a project that never claims leaves its share there, possibly forever. The projects are not affiliated with anyfee and did not ask for this; each may decline, and nobody has to claim.",
+  ],
+];
+
 export const QA = [
   ["endorse", "Is a vault an endorsement?", "No. Every GitHub repository, GitHub account and X account has a vault whether or not its owner has heard of anyfee. A vault is unverified until claimed, and even a claimed vault only says that someone proved control of the account to the attester. The owner may decline."],
   ["unclaimed", "What happens to my tip if nobody claims the vault?", "After 30 days anyone can press Refund on it (the site shows the button to you under “Your tips to this vault”) and it goes back to your wallet, together with the receipt deposit. The money can only ever go back to the sender."],
   ["cost", "What does a tip cost?", "The tip, plus a receipt deposit of about 0.0013 SOL that comes back to you when the tip is refunded or its receipt is closed, plus about 0.0014 SOL once to open a vault that is not on-chain yet (that stays in the vault as rent), plus the network fee."],
   ["claimed", "What if the owner claims?", "Then your tip is theirs. It is no longer refundable. The receipt deposit is still yours: “Close receipt” returns it."],
   ["fees", "Can I route pump.fun or Bags creator fees to a vault?", "Yes: paste the vault address as a pump.fun creator-fee shareholder or a Bags fee earner. Fees have no single sender, so they are never refunded; they wait for the owner. anyfee is devnet only for now, so do not route real mainnet fees yet."],
-  ["token", "Does anyfee have a token?", "No. anyfee has no token of its own. It routes other coins' creator fees to the accounts they are about; it never issues one."],
+  ...TOKEN_QA,
   ["rename", "What if a repository is renamed or transferred, or a handle changes?", "The vault follows the numeric id, so it stays put. A repository transferred to a new owner keeps its vault; if it was already claimed, the new owner's claim waits 48 hours and the previous owner can cancel it. Bound vaults favour the incumbent."],
   ["orgs", "Can a GitHub organization claim?", "Not its account vault: only personal accounts can claim a GitHub-account vault. Organizations get paid through their repositories, which work fine. The site blocks tips and warns against routing fees to organization account vaults."],
   ["collab", "Who can claim a repository?", "Whoever can run a workflow on the repository's default branch, usually anyone with write access. Collaborators can claim the repository's vault but not the owner's personal vault."],

@@ -1148,6 +1148,145 @@ ul.fine li::before {
   }
 }
 
+/* ---- home: the planned coin ----------------------------------------------------------------------------- */
+
+.token-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.token-ticker {
+  color: var(--fg);
+}
+.token-grid {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+@media (min-width: 900px) {
+  .token-grid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 40px;
+    align-items: start;
+  }
+}
+.token-fig {
+  margin: 0;
+  border: 1px solid var(--rule);
+  background: var(--bg-fig);
+  min-width: 0;
+}
+.token-fig figcaption {
+  padding: 9px 12px 10px;
+  border-top: 1px solid var(--rule);
+  font-size: 11px;
+  color: var(--muted);
+}
+.token-status {
+  margin: 0;
+  border-top: 1px solid var(--fg);
+}
+.token-status > div {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.token-status dt {
+  font: 500 11px/1.9 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.token-status > div:first-child dt {
+  color: var(--accent-ink);
+}
+.token-status dd {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--fg-2);
+}
+.token-status > div:first-child dd {
+  color: var(--fg);
+  font-weight: 500;
+}
+.token-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.token-table th,
+.token-table td {
+  padding: 11px 16px 11px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+.token-table thead th {
+  font: 500 10.5px/1.4 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom-color: var(--fg);
+}
+.token-table tbody th {
+  font-weight: 600;
+}
+.token-share {
+  font: 500 16px/1.4 var(--font-mono);
+}
+.token-vault {
+  white-space: nowrap;
+}
+.token-vault code {
+  margin-right: 8px;
+  font-size: 12.5px;
+}
+.token-why {
+  color: var(--fg-2);
+}
+.token-note {
+  margin: 14px 0 0;
+}
+@media (max-width: 719px) {
+  .token-status > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .token-table,
+  .token-table tbody,
+  .token-table tr,
+  .token-table th,
+  .token-table td {
+    display: block;
+  }
+  .token-table thead {
+    display: none;
+  }
+  .token-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .token-table th,
+  .token-table td {
+    padding: 0;
+    border: 0;
+  }
+  .token-share {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .token-vault,
+  .token-why {
+    grid-column: 1 / -1;
+  }
+}
+
 /* ---- vault readout ---------------------------------------------------------------------------------------- */
 
 .readout-grid {
