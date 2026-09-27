@@ -429,3 +429,4 @@ analytics, no i18n.
 - `describeProgramError` knows only the program's own codes; Anchor framework codes (3012
   `AccountNotInitialized`, 2006 `ConstraintSeeds`) would help clients too.
 - `/api/resolve?q=x:<id>` returns no handle because fxtwitter has no id lookup (`userById`).
+- 2026-09-27 dogfood on real GitHub + devnet: `.github/workflows/anyfee-claim.yml` (this repo, id 1390597639) ran `./action`, the attester (reached through a temporary tunnel, submit mode) verified GitHub's OIDC token and sent the bind; `scripts/devnet-claim.ts` then claimed the 0.01 SOL tip to the maintainer wallet. The OIDC self-test workflow also verifies real GitHub tokens in CI.
