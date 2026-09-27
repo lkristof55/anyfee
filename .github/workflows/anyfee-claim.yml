@@ -1,0 +1,29 @@
+# Dogfooding: this repository claims its own anyfee box (devnet) with the action in ./action.
+# Run it from Actions → "anyfee claim" → Run workflow, on the default branch.
+name: anyfee claim
+on:
+  workflow_dispatch:
+    inputs:
+      claimant:
+        description: Solana wallet (base58) that will be able to claim this repository's box
+        required: true
+      attester-url:
+        description: Base URL of the anyfee attester
+        required: true
+      claim:
+        description: "repo, user (the owner's GitHub account; personal repos only) or both"
+        required: false
+        default: repo
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  claim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./action
+        with:
+          claimant: ${{ inputs.claimant }}
+          attester-url: ${{ inputs.attester-url }}
+          claim: ${{ inputs.claim }}
