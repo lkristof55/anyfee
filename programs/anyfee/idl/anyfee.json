@@ -1,0 +1,2205 @@
+{
+  "address": "BixfaA4JmPvntZvGZwnqhHdoUQvEzZY6ZBMXCLgF3C9M",
+  "metadata": {
+    "name": "anyfee",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "anyfee: tips and fee routing to GitHub repos, GitHub users and X accounts, keyed by numeric id"
+  },
+  "instructions": [
+    {
+      "name": "bind",
+      "docs": [
+        "Binds (or requests a rebind of) a vault to `claimant`. Requires the immediately",
+        "preceding instruction to be an Ed25519SigVerify of `M` by `config.attester`."
+      ],
+      "discriminator": [
+        178,
+        57,
+        187,
+        254,
+        138,
+        43,
+        99,
+        134
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        },
+        {
+          "name": "claimant",
+          "type": "pubkey"
+        },
+        {
+          "name": "expires_at",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "cancel_rebind",
+      "docs": [
+        "Current claimant clears a pending rebind."
+      ],
+      "discriminator": [
+        171,
+        241,
+        9,
+        73,
+        84,
+        123,
+        30,
+        15
+      ],
+      "accounts": [
+        {
+          "name": "claimant",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "claim_sol",
+      "docs": [
+        "Current claimant withdraws all lamports above rent (minus outstanding tips if declined)."
+      ],
+      "discriminator": [
+        139,
+        113,
+        179,
+        189,
+        190,
+        30,
+        132,
+        195
+      ],
+      "accounts": [
+        {
+          "name": "claimant",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "destination",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "claim_token",
+      "docs": [
+        "Current claimant withdraws the vault ATA balance (minus outstanding tips if declined)."
+      ],
+      "discriminator": [
+        116,
+        206,
+        27,
+        191,
+        166,
+        19,
+        0,
+        73
+      ],
+      "accounts": [
+        {
+          "name": "claimant",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "destination",
+          "docs": [
+            "Any token account for `config.usdc_mint`, chosen by the claimant."
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "close_tip",
+      "docs": [
+        "Permissionless crank: closes a tip receipt consumed by a claim; rent back to its sender."
+      ],
+      "discriminator": [
+        22,
+        109,
+        220,
+        105,
+        16,
+        11,
+        112,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "relations": [
+            "tip"
+          ]
+        },
+        {
+          "name": "tip",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "arg",
+                "path": "tip_index"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sender",
+          "writable": true,
+          "relations": [
+            "tip"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        },
+        {
+          "name": "tip_index",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "decline",
+      "docs": [
+        "Current claimant declines: no new tips, outstanding tips refundable immediately."
+      ],
+      "discriminator": [
+        24,
+        57,
+        90,
+        162,
+        91,
+        94,
+        245,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "claimant",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "finalize_rebind",
+      "docs": [
+        "Permissionless once the rebind delay has passed."
+      ],
+      "discriminator": [
+        126,
+        255,
+        92,
+        107,
+        97,
+        125,
+        185,
+        39
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "init_vault",
+      "docs": [
+        "Permissionless; the payer funds rent. Works on an address that already holds lamports."
+      ],
+      "discriminator": [
+        77,
+        79,
+        85,
+        150,
+        33,
+        217,
+        52,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Anchor's `init` handles an address that already holds lamports (routed fees sent",
+            "before initialization): it tops up to rent exemption, then allocates and assigns",
+            "with the PDA signature. Pre-existing lamports stay in the vault and are claimable."
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "docs": [
+        "One-time setup. The signer must be the program's upgrade authority and becomes admin."
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "docs": [
+            "Becomes `config.admin`. Must be the program's upgrade authority, so nobody can",
+            "front-run initialization between deploy and initialize."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "address": "BixfaA4JmPvntZvGZwnqhHdoUQvEzZY6ZBMXCLgF3C9M"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "attester",
+          "type": "pubkey"
+        },
+        {
+          "name": "usdc_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "refund_window_secs",
+          "type": "i64"
+        },
+        {
+          "name": "rebind_delay_secs",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "refund_tip",
+      "docs": [
+        "Permissionless crank: refunds a SOL tip to its sender when the refund rules allow it."
+      ],
+      "discriminator": [
+        66,
+        162,
+        5,
+        255,
+        63,
+        112,
+        0,
+        243
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "relations": [
+            "tip"
+          ]
+        },
+        {
+          "name": "tip",
+          "docs": [
+            "Closed on success; its rent goes back to the sender."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "arg",
+                "path": "tip_index"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sender",
+          "writable": true,
+          "relations": [
+            "tip"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        },
+        {
+          "name": "tip_index",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "refund_tip_token",
+      "docs": [
+        "Permissionless crank: refunds a token tip to its sender's ATA when the rules allow it."
+      ],
+      "discriminator": [
+        94,
+        227,
+        170,
+        131,
+        201,
+        47,
+        202,
+        56
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "relations": [
+            "tip"
+          ]
+        },
+        {
+          "name": "tip",
+          "docs": [
+            "Closed on success; its rent goes back to the sender."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "arg",
+                "path": "tip_index"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sender",
+          "writable": true,
+          "relations": [
+            "tip"
+          ]
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "vault_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "sender_token_account",
+          "docs": [
+            "The sender's associated token account for `config.usdc_mint`. If the sender closed it,",
+            "the cranker can recreate it first (ATA `create_idempotent`) in the same transaction."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "sender"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        },
+        {
+          "name": "tip_index",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_config",
+      "docs": [
+        "Admin only. `None` keeps a value. Cannot touch vault funds or `usdc_mint`."
+      ],
+      "discriminator": [
+        108,
+        158,
+        154,
+        175,
+        212,
+        98,
+        52,
+        66
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_admin",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "attester",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "refund_window_secs",
+          "type": {
+            "option": "i64"
+          }
+        },
+        {
+          "name": "rebind_delay_secs",
+          "type": {
+            "option": "i64"
+          }
+        },
+        {
+          "name": "paused",
+          "type": {
+            "option": "bool"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tip_sol",
+      "docs": [
+        "Direct SOL tip with a refundable receipt. The vault must exist."
+      ],
+      "discriminator": [
+        111,
+        81,
+        145,
+        255,
+        235,
+        229,
+        103,
+        75
+      ],
+      "accounts": [
+        {
+          "name": "sender",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Must already be initialized (prepend `init_vault` if it is not)."
+          ],
+          "writable": true
+        },
+        {
+          "name": "tip",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.tip_count",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "tip_token",
+      "docs": [
+        "Direct `config.usdc_mint` tip into the vault's ATA (created if missing). The vault must exist."
+      ],
+      "discriminator": [
+        100,
+        75,
+        23,
+        52,
+        214,
+        128,
+        217,
+        41
+      ],
+      "accounts": [
+        {
+          "name": "sender",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Must already be initialized (prepend `init_vault` if it is not)."
+          ],
+          "writable": true
+        },
+        {
+          "name": "tip",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  105,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.tip_count",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "sender_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault_token_account",
+          "docs": [
+            "The vault's associated token account for `config.usdc_mint`; created if missing."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "platform",
+          "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "Tip",
+      "discriminator": [
+        87,
+        218,
+        38,
+        122,
+        15,
+        197,
+        190,
+        230
+      ]
+    },
+    {
+      "name": "Vault",
+      "discriminator": [
+        211,
+        8,
+        232,
+        43,
+        2,
+        152,
+        117,
+        119
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "Bound",
+      "discriminator": [
+        246,
+        254,
+        75,
+        186,
+        240,
+        107,
+        207,
+        246
+      ]
+    },
+    {
+      "name": "Claimed",
+      "discriminator": [
+        217,
+        192,
+        123,
+        72,
+        108,
+        150,
+        248,
+        33
+      ]
+    },
+    {
+      "name": "ConfigInitialized",
+      "discriminator": [
+        181,
+        49,
+        200,
+        156,
+        19,
+        167,
+        178,
+        91
+      ]
+    },
+    {
+      "name": "ConfigUpdated",
+      "discriminator": [
+        40,
+        241,
+        230,
+        122,
+        11,
+        19,
+        198,
+        194
+      ]
+    },
+    {
+      "name": "Declined",
+      "discriminator": [
+        59,
+        213,
+        198,
+        187,
+        88,
+        218,
+        236,
+        20
+      ]
+    },
+    {
+      "name": "RebindCancelled",
+      "discriminator": [
+        80,
+        56,
+        71,
+        177,
+        239,
+        223,
+        233,
+        189
+      ]
+    },
+    {
+      "name": "RebindFinalized",
+      "discriminator": [
+        144,
+        32,
+        220,
+        25,
+        244,
+        139,
+        83,
+        221
+      ]
+    },
+    {
+      "name": "RebindRequested",
+      "discriminator": [
+        3,
+        210,
+        133,
+        6,
+        88,
+        121,
+        181,
+        63
+      ]
+    },
+    {
+      "name": "Refunded",
+      "discriminator": [
+        35,
+        103,
+        149,
+        246,
+        196,
+        123,
+        221,
+        99
+      ]
+    },
+    {
+      "name": "TipClosed",
+      "discriminator": [
+        166,
+        102,
+        250,
+        112,
+        114,
+        189,
+        124,
+        240
+      ]
+    },
+    {
+      "name": "Tipped",
+      "discriminator": [
+        5,
+        180,
+        227,
+        203,
+        87,
+        116,
+        150,
+        135
+      ]
+    },
+    {
+      "name": "VaultInitialized",
+      "discriminator": [
+        180,
+        43,
+        207,
+        2,
+        18,
+        71,
+        3,
+        75
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "VaultDeclined",
+      "msg": "Vault has been declined by its claimant; it accepts no new tips"
+    },
+    {
+      "code": 6001,
+      "name": "Paused",
+      "msg": "Program is paused (tips, binds and rebind finalization are disabled)"
+    },
+    {
+      "code": 6002,
+      "name": "NotClaimant",
+      "msg": "Signer is not the vault's claimant"
+    },
+    {
+      "code": 6003,
+      "name": "BadAttestation",
+      "msg": "Attestation message does not match the expected bind message"
+    },
+    {
+      "code": 6004,
+      "name": "AttestationExpired",
+      "msg": "Attestation has expired"
+    },
+    {
+      "code": 6005,
+      "name": "RebindNotReady",
+      "msg": "Pending rebind is not effective yet"
+    },
+    {
+      "code": 6006,
+      "name": "NothingToClaim",
+      "msg": "Nothing to claim"
+    },
+    {
+      "code": 6007,
+      "name": "RefundNotYet",
+      "msg": "Tip is not refundable yet"
+    },
+    {
+      "code": 6008,
+      "name": "TipAlreadySettled",
+      "msg": "Tip was already refunded or consumed by a claim"
+    },
+    {
+      "code": 6009,
+      "name": "UnknownPlatform",
+      "msg": "Unknown platform"
+    },
+    {
+      "code": 6010,
+      "name": "VaultUnbound",
+      "msg": "Vault is not bound to a claimant"
+    },
+    {
+      "code": 6011,
+      "name": "NoPendingRebind",
+      "msg": "Vault has no pending rebind"
+    },
+    {
+      "code": 6012,
+      "name": "AlreadyClaimant",
+      "msg": "Claimant is already bound to this vault"
+    },
+    {
+      "code": 6013,
+      "name": "AlreadyDeclined",
+      "msg": "Vault is already declined"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidClaimant",
+      "msg": "Invalid claimant"
+    },
+    {
+      "code": 6015,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6016,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidConfig",
+      "msg": "Configuration value out of bounds"
+    },
+    {
+      "code": 6018,
+      "name": "NotAdmin",
+      "msg": "Signer is not the admin"
+    },
+    {
+      "code": 6019,
+      "name": "NotUpgradeAuthority",
+      "msg": "Signer is not the program's upgrade authority"
+    },
+    {
+      "code": 6020,
+      "name": "MissingEd25519Instruction",
+      "msg": "The instruction before bind must be an Ed25519SigVerify instruction"
+    },
+    {
+      "code": 6021,
+      "name": "MalformedEd25519Instruction",
+      "msg": "Malformed Ed25519SigVerify instruction (need exactly one signature, all offsets inside the same instruction)"
+    },
+    {
+      "code": 6022,
+      "name": "WrongAttester",
+      "msg": "Attestation was not signed by the configured attester"
+    },
+    {
+      "code": 6023,
+      "name": "NotRefundable",
+      "msg": "Tip is not refundable: the vault is bound and not declined"
+    },
+    {
+      "code": 6024,
+      "name": "WrongTipKind",
+      "msg": "Wrong refund instruction for this tip's asset (use refund_tip for SOL, refund_tip_token for tokens)"
+    },
+    {
+      "code": 6025,
+      "name": "TipNotConsumed",
+      "msg": "Tip has not been consumed by a claim"
+    },
+    {
+      "code": 6026,
+      "name": "InvalidDestination",
+      "msg": "Invalid destination"
+    },
+    {
+      "code": 6027,
+      "name": "InsufficientVaultBalance",
+      "msg": "Vault balance is below its reserved amount"
+    }
+  ],
+  "types": [
+    {
+      "name": "Bound",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "claimant",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Claimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "claimant",
+            "type": "pubkey"
+          },
+          {
+            "name": "destination",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "`Pubkey::default()` = SOL."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "consumed_tips",
+            "docs": [
+              "True when this claim consumed the epoch's tips (claim_epoch was incremented)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "claim_epoch",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Config",
+      "docs": [
+        "Global configuration. PDA seeds: `[\"config\"]`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "docs": [
+              "May change attester, windows, pause flag and admin. Can never move vault funds."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "attester",
+            "docs": [
+              "ed25519 key whose signature over the bind message `M` authorises `bind`."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "docs": [
+              "The only SPL mint accepted by `tip_token` / `claim_token` / `refund_tip_token`."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_window_secs",
+            "docs": [
+              "An unbound vault's direct tips become refundable this long after they were sent."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "rebind_delay_secs",
+            "docs": [
+              "Delay between a rebind request and when it can be finalized."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "paused",
+            "docs": [
+              "Blocks new tips, binds and rebind finalization. Never blocks claims, refunds,",
+              "cancel_rebind or decline."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "attester",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_window_secs",
+            "type": "i64"
+          },
+          {
+            "name": "rebind_delay_secs",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "attester",
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_window_secs",
+            "type": "i64"
+          },
+          {
+            "name": "rebind_delay_secs",
+            "type": "i64"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Declined",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "claimant",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebindCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "claimant",
+            "type": "pubkey"
+          },
+          {
+            "name": "cancelled_claimant",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebindFinalized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "old_claimant",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_claimant",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebindRequested",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "current_claimant",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_claimant",
+            "type": "pubkey"
+          },
+          {
+            "name": "effective_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Refunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "tip",
+            "type": "pubkey"
+          },
+          {
+            "name": "tip_index",
+            "type": "u64"
+          },
+          {
+            "name": "sender",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "`Pubkey::default()` = SOL."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Tip",
+      "docs": [
+        "Receipt for one direct tip. PDA seeds: `[\"tip\", vault, tip_index.to_le_bytes()]`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "sender",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "`Pubkey::default()` = SOL; otherwise `config.usdc_mint`."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "refunded",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TipClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "tip",
+            "type": "pubkey"
+          },
+          {
+            "name": "tip_index",
+            "type": "u64"
+          },
+          {
+            "name": "sender",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Tipped",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "tip",
+            "type": "pubkey"
+          },
+          {
+            "name": "tip_index",
+            "type": "u64"
+          },
+          {
+            "name": "sender",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "`Pubkey::default()` = SOL."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Vault",
+      "docs": [
+        "One vault per (platform, id). PDA seeds: `[\"vault\", [platform], id.to_le_bytes()]`.",
+        "",
+        "The address is deterministic and can receive lamports (and, through its associated",
+        "token account, tokens) before the account is initialized."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "platform",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "claimant",
+            "docs": [
+              "`Pubkey::default()` = unbound."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_claimant",
+            "docs": [
+              "`Pubkey::default()` = no pending rebind."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_effective_at",
+            "type": "i64"
+          },
+          {
+            "name": "bound_at",
+            "type": "i64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "declined",
+            "type": "bool"
+          },
+          {
+            "name": "claim_epoch",
+            "docs": [
+              "+1 on every claim that consumes tips; tips from an older epoch can no longer be refunded."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "tip_count",
+            "docs": [
+              "Number of tips ever received; the next tip's index."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "outstanding_tip_lamports",
+            "docs": [
+              "Lamports of receipted tips of the current epoch that are not refunded yet."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "outstanding_tip_tokens",
+            "docs": [
+              "Token base units of receipted tips of the current epoch that are not refunded yet."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_claimed_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "total_claimed_tokens",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "platform",
+            "type": "u8"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "prefunded_lamports",
+            "docs": [
+              "Lamports above rent exemption right after initialization, i.e. routed fees that",
+              "reached the address before it was initialized (0 for a fresh address)."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "BIND_DOMAIN",
+      "docs": [
+        "Domain separator at the start of the attestation message `M`."
+      ],
+      "type": "bytes",
+      "value": "[97, 110, 121, 102, 101, 101, 58, 98, 105, 110, 100, 58, 118, 49]"
+    },
+    {
+      "name": "BIND_MESSAGE_LEN",
+      "docs": [
+        "`M` = domain (14) || program_id (32) || platform (1) || id u64 LE (8) || claimant (32) || expires_at i64 LE (8)."
+      ],
+      "type": "u16",
+      "value": "95"
+    },
+    {
+      "name": "CONFIG_SEED",
+      "type": "bytes",
+      "value": "[99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "DEFAULT_REBIND_DELAY_SECS",
+      "type": "i64",
+      "value": "172800"
+    },
+    {
+      "name": "DEFAULT_REFUND_WINDOW_SECS",
+      "type": "i64",
+      "value": "2592000"
+    },
+    {
+      "name": "MAX_REBIND_DELAY_SECS",
+      "docs": [
+        "Upper bound for `rebind_delay_secs` (30 days)."
+      ],
+      "type": "i64",
+      "value": "2592000"
+    },
+    {
+      "name": "MAX_REFUND_WINDOW_SECS",
+      "docs": [
+        "Upper bound for `refund_window_secs` (365 days): sender funds are never locked indefinitely."
+      ],
+      "type": "i64",
+      "value": "31536000"
+    },
+    {
+      "name": "MIN_REBIND_DELAY_SECS",
+      "docs": [
+        "Lower bound for `rebind_delay_secs` (1 day): a claimant always has at least a day to cancel",
+        "a rebind requested by a compromised attester."
+      ],
+      "type": "i64",
+      "value": "86400"
+    },
+    {
+      "name": "MIN_REFUND_WINDOW_SECS",
+      "docs": [
+        "Lower bound for `refund_window_secs` (1 day): tips cannot be bounced before a recipient can react."
+      ],
+      "type": "i64",
+      "value": "86400"
+    },
+    {
+      "name": "PLATFORM_GITHUB_REPO",
+      "type": "u8",
+      "value": "2"
+    },
+    {
+      "name": "PLATFORM_GITHUB_USER",
+      "type": "u8",
+      "value": "1"
+    },
+    {
+      "name": "PLATFORM_X",
+      "type": "u8",
+      "value": "3"
+    },
+    {
+      "name": "TIP_SEED",
+      "type": "bytes",
+      "value": "[116, 105, 112]"
+    },
+    {
+      "name": "VAULT_SEED",
+      "type": "bytes",
+      "value": "[118, 97, 117, 108, 116]"
+    }
+  ]
+}

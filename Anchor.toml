@@ -1,0 +1,21 @@
+[toolchain]
+anchor_version = "1.2.0"
+package_manager = "npm"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+anyfee = "BixfaA4JmPvntZvGZwnqhHdoUQvEzZY6ZBMXCLgF3C9M"
+
+[programs.devnet]
+anyfee = "BixfaA4JmPvntZvGZwnqhHdoUQvEzZY6ZBMXCLgF3C9M"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+# `anchor test --skip-local-validator --skip-deploy` builds, then runs the LiteSVM suite.
+test = "cargo test -p anyfee-program-tests"

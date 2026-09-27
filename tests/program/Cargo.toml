@@ -1,0 +1,31 @@
+[package]
+name = "anyfee-program-tests"
+version = "0.1.0"
+description = "LiteSVM tests for the anyfee program (loads target/deploy/anyfee.so)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+anyfee = { path = "../../programs/anyfee", features = ["no-entrypoint"] }
+anchor-lang = "=1.2.0"
+anchor-spl = { version = "=1.2.0", default-features = false, features = ["token", "token_2022", "associated_token"] }
+litesvm = { version = "0.16.0", features = ["precompiles"] }
+solana-keypair = "3"
+solana-signer = "3"
+solana-message = "4"
+solana-transaction = "4"
+solana-account = "4"
+solana-clock = "3"
+solana-ed25519-program = "3"
+solana-sdk-ids = "3"
+solana-program-pack = "3"
+solana-system-interface = { version = "3", features = ["bincode"] }
+hex = "0.4"
+solana-transaction-error = "3"
+solana-instruction = "3"
+solana-rent = "4"

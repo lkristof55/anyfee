@@ -1,0 +1,10 @@
+keys/
+node_modules/
+target/
+.anchor/
+test-ledger/
+.env
+*.log
+dist/
+.data/
+.netlify/
