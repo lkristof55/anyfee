@@ -1,0 +1,29 @@
+{
+  "name": "@anyfee/app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "anyfee website: send, claim and vault pages (static site + the attester's handlers as same-origin /api).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.ts",
+    "dev": "node --env-file-if-exists=.env server/dev.ts --watch",
+    "start": "node --env-file-if-exists=.env server/dev.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "e2e:devnet": "node test/devnet-e2e.ts",
+    "og": "node scripts/render-og.ts"
+  },
+  "dependencies": {
+    "@anyfee/attester": "0.1.0",
+    "@anyfee/sdk": "0.1.0",
+    "@solana/web3.js": "^1.99.0",
+    "@wallet-standard/app": "^1.1.1",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

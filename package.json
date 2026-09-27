@@ -8,7 +8,8 @@
   "workspaces": [
     "sdk",
     "attester",
-    "action"
+    "action",
+    "app"
   ],
   "engines": {
     "node": ">=22.18.0"
@@ -17,7 +18,9 @@
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "dev": "npm run dev -w @anyfee/attester"
+    "dev": "npm run dev -w @anyfee/attester",
+    "dev:site": "npm run dev -w @anyfee/app",
+    "build:site": "npm run build -w @anyfee/app"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

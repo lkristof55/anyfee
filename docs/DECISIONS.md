@@ -314,3 +314,118 @@ Crediting lamports needs no ownership.
 - Program deployed to devnet at BixfaA4JmPvntZvGZwnqhHdoUQvEzZY6ZBMXCLgF3C9M (upgrade authority = devnet deployer), config AB2iPJfuLv2Bf3JecZ3LcSqsMaAeE8VPfgWSmQ6i9TbA initialized with the devnet attester, devnet USDC 4zMMC9…, 30 d refund window, 48 h rebind delay.
 - `scripts/devnet-e2e.ts` passes against devnet with the SDK only: raw inflow to an uninitialized vault address → init + tip → ed25519+bind → claim; tip → bind → decline → permissionless refund.
 - Note: when fees reach a vault address before `init_vault`, the vault's rent (0.00144 SOL) is taken from those funds, and every claim leaves exactly that rent in the vault.
+
+## site (`app/`)
+
+**W1. Stack: vanilla ES modules bundled by esbuild; three.js only for the wall, loaded lazily.**
+- No framework: the UI is a handful of forms and panels built with a 40-line `h()` helper that
+  only ever inserts text nodes (names and descriptions from GitHub and X cannot inject markup).
+- The SDK is used as-is (`@anyfee/sdk` sources through the workspace); no PDA, layout or
+  instruction code is duplicated in the app. `@solana/web3.js` 1.x is the SDK's own dependency.
+- Wallets: `@wallet-standard/app` only (Phantom, Solflare, Backpack and any standard wallet).
+- Budget: app ≈142 KB gzip + three.js wall ≈138 KB gzip (dynamic import) ≈ 280 KB, under the
+  400 KB target; CSS ≈8 KB gzip; fonts vendored (≈108 KB woff2, OFL, see `app/CREDITS.md`).
+
+**W2. One origin: site + attester handlers + an RPC proxy.**
+- Local: `app/server/dev.ts` serves `app/dist` and composes the attester's
+  `createHandler({ config: loadConfig(env) })` with the app's `/api/rpc` proxy on one port.
+  `ATTESTER_SECRET_KEY_FILE` stays explicit (S11); a relative path is resolved against `INIT_CWD`
+  so `npm run dev:site` works from the repository root.
+- Netlify (not deployed): `/api/*` is the attester's own `netlifyHandler()` plus the proxy;
+  `/v/*` is a function that injects per-page meta into the built shell.
+
+**W3. The browser talks to Solana only through `/api/rpc`.**
+- Why: `RPC_URL` carries an API key (Helius). The proxy keeps it server-side and never echoes
+  upstream error text.
+- It forwards an allowlist of read/send methods, limits `getProgramAccounts` to scans of the anyfee
+  program that are filtered by vault (memcmp at offset 8), refuses batches, refuses mainnet-beta
+  by genesis hash (and anything but devnet/testnet unless `ALLOW_LOCAL_RPC=1`), and retries
+  upstream 429s with backoff (free RPC tiers throttle a page load plus a transaction).
+- No websockets: confirmations are polled with `getSignatureStatuses` (and the raw transaction is
+  re-sent every few seconds until confirmed or the blockhash expires).
+- No rate limiting of its own in v0.1 (same as the attester, S12).
+
+**W4. Transactions: simulate, then `solana:signTransaction`, then send ourselves.**
+- Legacy transactions, fee payer = the connected wallet. Every transaction is simulated before
+  the wallet opens, so program errors show as sentences (`describeProgramError` + a few Anchor
+  codes by log text) instead of a wallet warning.
+- The site asks for `signTransaction`, not `signAndSendTransaction`, so the site decides the
+  cluster (devnet) regardless of the wallet's network setting.
+- A tip whose index was taken by a concurrent tip (seeds mismatch) is rebuilt and retried once.
+
+**W5. "Your mail to this box" lists a sender's receipts with one filtered scan.**
+- `getProgramAccounts` with `dataSize 130`, `memcmp(8) = vault`, `memcmp(40) = sender`; the tip
+  index (needed by `refund_tip`/`close_tip`) is recovered by deriving tip PDAs from `tip_count`
+  downwards. If the RPC refuses the scan, the last 300 receipts are read directly.
+- Only the connected wallet's own receipts are shown; nobody else's tips are listed.
+
+**W6. UI limits that the program does not enforce.**
+- Minimum tip 0.001 SOL / 0.10 USDC: the receipt deposit (≈0.00131 SOL) would otherwise dwarf the
+  tip (THREAT-MODEL §7).
+- Tips to a GitHub *organization's* account box are disabled, and the fee panel says not to route
+  fees there: organizations can never claim it, so tips could only ever bounce and fees would be
+  stuck forever.
+- Declined or paused boxes show why tips are closed instead of a form.
+
+**W7. Routes.** `/v/github/:owner/:repo`, `/v/gh/:login`, `/v/x/:handle` as asked, plus
+`/v/id/:platform/:id` by numeric id. The id route is the stable share link (survives renames and
+handle changes) and the only route for identities without a resolvable handle (fxtwitter has no
+id → handle lookup). A numeric `/v/x/<id>` was not used because X handles can be all digits.
+Unknown paths get the in-character 404 with HTTP 404; `404.html` also boots the app, so plain
+static hosts still serve vault pages.
+
+**W8. Link previews come from the path only.** `<title>`, description and Open Graph tags are
+derived from the URL, with no network call and no balances or amounts, so a shared box never
+reads like a "claim your funds" lure. `og.png` and the icons are rendered from the site's own
+3D wall (`npm run og -w @anyfee/app`).
+
+**W9. Claim page details.**
+- GitHub: the workflow YAML from CLAIMING.md with the wallet pre-filled as the
+  `workflow_dispatch` input default and the attester URL filled in; an "Add it to the repository"
+  link opens GitHub's new-file page with the content pre-filled. The `uses:` line keeps the
+  CLAIMING.md placeholder (`OWNER/anyfee/action@v0.1.0`) because the action is not published;
+  the page says so. A local attester URL gets a warning (GitHub's runners cannot reach it).
+- After the proof, the page polls `/api/resolve` every 6 s until the box is bound (or a change
+  is pending) to the connected wallet, then shows the holder's window.
+- Paste mode (every type): the JSON is verified in the browser with the SDK's
+  `verifyAttestation` against `config.attester` before anything is signed; a claimant different
+  from the connected wallet is allowed (anyone may submit a bind) but flagged.
+- The attester URL is configurable (stored per browser); default is the same origin.
+
+**W10. Honesty copy.** Every box says: unverified until claimed, not an endorsement, the owner
+may decline, direct tips return after the refund window, routed fees stay, devnet only. Where the
+brief says "the attester can bind but never withdraw", the site adds the THREAT-MODEL caveat:
+until a box is first claimed you are trusting the attester to bind the right person. The fee
+panel warns that the box address is a devnet box and must not be put into a mainnet coin yet
+(the same program id could later exist on mainnet, but nothing can claim there today).
+
+**W11. Design.** A post-office lobby: enamel-green wall, numbered brass boxes with glass windows,
+combination dials and a letter slot, form-paper panels and rubber stamps for status
+(Unclaimed / Claimed / Return to sender / Change pending). Type: Big Shoulders Display (civic
+signage, engraved numerals), Public Sans (US government forms), IBM Plex Mono (addresses). The
+wall renders on demand only (no idle loop), pauses when hidden, caps DPR at 2 (1.5 on small
+screens), falls back to a CSS wall without WebGL, and does not animate under
+`prefers-reduced-motion`. `/faq` is a plain question list, not an accordion.
+
+**W12. Tests.** `npm test -w @anyfee/app` is offline (routes, meta shell, RPC proxy guards,
+formatting, attestation parsing, both Netlify functions). `npm run e2e:devnet -w @anyfee/app` is
+opt-in: Playwright (not a dependency; `PLAYWRIGHT_MODULE`) drives the real site on devnet with an
+injected Wallet Standard wallet whose key stays in Node, funded from the deployer with a 0.05 SOL
+cap recorded in `keys/site-test-wallet.funding.json`.
+
+**W13. Not done.** No deploy. USDC tips are implemented but not exercised on devnet (the test
+wallet holds no devnet USDC; Circle's faucet is a web form). The GitHub claim was exercised up to
+the YAML and polling; a real OIDC run needs the action published and a public attester. No
+analytics, no i18n.
+
+**SDK / attester notes for their owners** (not changed here):
+- `XUser` has no avatar; `/api/resolve` could return X avatars (fxtwitter provides
+  `avatar_url`). The site fetches it from fxtwitter in the browser, display only.
+- A `fetchTipsBySender(conn, vault, sender)` helper (scan + index recovery, W5) would belong in
+  the SDK so other clients can offer refunds.
+- `fetchVaultState` makes three sequential RPC calls (config + vault, then the ATA, then rent);
+  folding the ATA into the first `getMultipleAccounts` (it is derivable from the fallback mint)
+  would halve round trips on rate-limited RPCs.
+- `describeProgramError` knows only the program's own codes; Anchor framework codes (3012
+  `AccountNotInitialized`, 2006 `ConstraintSeeds`) would help clients too.
+- `/api/resolve?q=x:<id>` returns no handle because fxtwitter has no id lookup (`userById`).

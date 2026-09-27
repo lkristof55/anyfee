@@ -13,6 +13,7 @@ before trusting it with anything.
 | [`docs/SPEC.md`](docs/SPEC.md) | The contract |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Decisions and deviations |
 | [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) | Trust assumptions and attacks |
+| [`docs/CLAIMING.md`](docs/CLAIMING.md) | How owners claim |
 
 ---
 
@@ -399,6 +400,92 @@ The example workflow is in [`docs/CLAIMING.md`](docs/CLAIMING.md).
 
 No secret is needed, and nothing touches Solana.
 
+## Website (`app/`)
+
+The site is the counter of a post-office lobby: a wall of numbered brass P.O. boxes (three.js),
+where looking up an account slides its box out, engraved with the account's numeric id, and a
+confirmed tip drops a letter into its slot. It runs on **devnet only** and says so on every page.
+
+| Route | Page |
+|---|---|
+| `/` | Send: one field (GitHub repo, GitHub user, X handle or box address) → the box's record, tip form, fee-recipient notes |
+| `/v/github/:owner/:repo`, `/v/gh/:login`, `/v/x/:handle` | Shareable box pages, with per-page `<title>` and Open Graph tags |
+| `/v/id/:platform/:id` | The same page by permanent numeric id (`github-repo`, `github-user`, `x`); survives renames |
+| `/claim` | Claim: account type → wallet → proof (GitHub workflow YAML pre-filled, or an X post) → bind → claim; a pasted attestation JSON works for every type |
+| `/how`, `/faq` | Mechanism and threat-model summary; straight answers |
+| anything else | An in-character 404 (HTTP 404) |
+
+A box page shows the identity (GitHub avatars, X avatars from fxtwitter), box number, address,
+status (unclaimed / held by … / declined / change pending), SOL and USDC in the box and the tip
+count. It has the tip form (SOL or USDC, `init_vault` in the same transaction, every cost itemized),
+"Your mail to this box" (the connected wallet's receipts with refund dates, **Refund** once the
+window passes or the owner declines, **Close receipt** for receipts a claim consumed), the
+holder's window (claim everything, cancel a pending change of holder, decline, finalize a due
+change) and the fee-recipient notes for pump.fun and Bags.
+
+Every transaction is built with the SDK (`tipSolInstructions`, `tipTokenInstructions`,
+`bindInstructions`, `claimAllInstructions`, `declineIx`, `cancelRebindIx`, `finalizeRebindIx`,
+`refundIxForTip`, `closeTipIx`), simulated first for a readable error, then signed by the wallet
+through Wallet Standard (`solana:signTransaction`: Phantom, Solflare, Backpack, …) and sent by the
+site through its own RPC proxy.
+
+### Run it locally (site + `/api` on one port)
+
+```sh
+npm install
+set -a; . /path/to/.env; set +a        # provides HELIUS_API_KEY; never commit or print it
+ATTESTER_SECRET_KEY_FILE=keys/attester-devnet.json \
+RPC_URL="https://devnet.helius-rpc.com/?api-key=$HELIUS_API_KEY" \
+npm run dev:site                        # → http://127.0.0.1:8788, rebuilds on change
+```
+
+- `npm run dev:site` builds `app/dist` with esbuild and serves it together with the attester's
+  handlers (`/api/resolve`, `/api/attest/github`, `/api/attest/x`, `/api/health`) and the app's
+  RPC proxy (`/api/rpc`). `PORT`/`HOST` override the address.
+- Without `ATTESTER_SECRET_KEY_FILE` the attester runs resolve-only (attest endpoints answer 503).
+  A relative path is resolved from the directory you ran npm in. Only the RPC *host* is printed.
+- Without `RPC_URL` it uses the public devnet RPC.
+- `/api/rpc` forwards only the methods the site uses, limits `getProgramAccounts` to filtered scans
+  of the anyfee program, absorbs short 429 bursts, never echoes upstream errors (they can contain
+  the key) and refuses mainnet-beta by genesis hash. The browser never sees the RPC URL.
+
+### Build, test, deploy
+
+```sh
+npm run build -w @anyfee/app     # app/dist: hashed JS/CSS, one HTML shell per static route, 404.html
+npm test -w @anyfee/app          # offline: routes, meta shell, RPC proxy, formatting, Netlify functions
+```
+
+JS is split into the app (≈142 KB gzip) and the lazily loaded three.js wall (≈138 KB gzip),
+≈280 KB in total; CSS ≈8 KB gzip. Without WebGL a CSS wall stands in; with
+`prefers-reduced-motion` the box is simply out, nothing animates.
+
+`app/netlify.toml` deploys the site and its API as one Netlify site (base directory `app`,
+publish `dist`): `netlify/functions/api.ts` serves `/api/*` through the attester's Netlify
+adapter plus the RPC proxy, and `netlify/functions/vault-page.ts` serves `/v/*` with per-page meta
+tags. Secrets (`RPC_URL`, `ATTESTER_SECRET_KEY`) go in the Netlify UI. It has not been deployed.
+
+### End-to-end on devnet (opt-in)
+
+```sh
+RPC_URL="https://devnet.helius-rpc.com/?api-key=$HELIUS_API_KEY" \
+PLAYWRIGHT_MODULE=/path/to/node_modules/playwright/index.mjs \
+npm run e2e:devnet -w @anyfee/app
+```
+
+Headless Chromium drives the real site against the live program with an injected Wallet
+Standard test wallet (`keys/site-test-wallet.json`, signing in Node; funded from
+`keys/devnet-deployer.json`, capped at 0.05 SOL across all runs):
+
+1. `lkristof55/ox81`: look it up, connect, tip 0.001 SOL; the card and "Your mail" show it.
+2. A synthetic X id: tip, paste a locally signed attestation on `/claim`, bind, claim, close
+   the consumed receipt, then a rebind request for another wallet that the holder cancels.
+3. Another synthetic X id: tip, bind, decline, refund.
+
+It then takes desktop (1440×900) and mobile (390×844) screenshots of every page into
+`app/test/screenshots/` and fails on any console error, failed request or horizontal overflow.
+`npm run og -w @anyfee/app` re-renders `public/og.png` and the icons from the running site.
+
 ## JavaScript workspace
 
 ```sh
@@ -406,6 +493,7 @@ npm install
 npm test            # sdk + attester + action, offline (recorded fixtures, mock JWKS, in-memory chain)
 npm run typecheck   # tsc 7 over sdk, attester (sources, tests, scripts)
 npm run dev         # attester on http://127.0.0.1:8787 (resolve-only unless a key is configured)
+npm run dev:site    # website + attester + RPC proxy on http://127.0.0.1:8788 (see Website)
 npm run localnet-e2e -w @anyfee/attester   # opt-in: SDK + attester against the real .so on a throwaway solana-test-validator (ports 18899/19900)
 ```
 
