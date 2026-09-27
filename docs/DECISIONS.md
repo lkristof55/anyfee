@@ -308,3 +308,9 @@ Crediting lamports needs no ownership.
   pre-funded `init_vault`, tips, OIDC → bind, claims, `close_tip`, rebind + cancel, X → bind,
   decline, refund, and five on-chain rejections.
 - It is not part of `npm test`, because it needs the Solana CLI and a built program.
+
+## Devnet deployment (orchestrator, 2026-09-27)
+
+- Program deployed to devnet at BixfaA4JmPvntZvGZwnqhHdoUQvEzZY6ZBMXCLgF3C9M (upgrade authority = devnet deployer), config AB2iPJfuLv2Bf3JecZ3LcSqsMaAeE8VPfgWSmQ6i9TbA initialized with the devnet attester, devnet USDC 4zMMC9…, 30 d refund window, 48 h rebind delay.
+- `scripts/devnet-e2e.ts` passes against devnet with the SDK only: raw inflow to an uninitialized vault address → init + tip → ed25519+bind → claim; tip → bind → decline → permissionless refund.
+- Note: when fees reach a vault address before `init_vault`, the vault's rent (0.00144 SOL) is taken from those funds, and every claim leaves exactly that rent in the vault.
