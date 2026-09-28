@@ -39,7 +39,11 @@ function fakeRpc(genesis = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG") {
       const tx = Transaction.from(raw);
       return bs58.encode(tx.signature!);
     },
-    confirmTransaction: async () => ({ context: { slot: 1 }, value: { err: null } }),
+    getSignatureStatuses: async (_sigs: string[]): Promise<{ context: { slot: number }; value: unknown[] }> => ({
+      context: { slot: 1 },
+      value: [{ slot: 1, confirmations: 0, err: null, confirmationStatus: "confirmed" }],
+    }),
+    getBlockHeight: async () => 50,
   };
   return conn;
 }
@@ -113,9 +117,45 @@ test("ATTESTER_SUBMIT=1 wires submission into the X endpoint", async () => {
 
 test("on-chain failure is reported with the program's error name", async () => {
   const rpc = fakeRpc();
-  rpc.confirmTransaction = async () => ({ context: { slot: 1 }, value: { err: { InstructionError: [3, { Custom: 6022 }] } } }) as never;
+  rpc.getSignatureStatuses = async () => ({
+    context: { slot: 1 },
+    value: [{ slot: 1, confirmations: 0, err: { InstructionError: [3, { Custom: 6022 }] }, confirmationStatus: "processed" }],
+  });
   const r = await submitAttestation(rpc as never, attesterKp, await att(), { programId: PROGRAM_ID, fallbackUsdcMint: DEVNET_USDC_MINT });
   assert.equal(r.status, "failed");
   assert.match(r.error!, /^WrongAttester/);
+  assert.ok(r.signature);
+});
+
+test("confirmation is polled (no WebSocket): unseen until the deadline -> sent, not confirmed yet", async () => {
+  const rpc = fakeRpc();
+  let polls = 0;
+  rpc.getSignatureStatuses = async () => {
+    polls++;
+    return { context: { slot: 1 }, value: [null] };
+  };
+  const r = await submitAttestation(rpc as never, attesterKp, await att(), {
+    programId: PROGRAM_ID,
+    fallbackUsdcMint: DEVNET_USDC_MINT,
+    confirmTimeoutMs: 30,
+    pollMs: 5,
+  });
+  assert.equal(r.status, "sent");
+  assert.match(r.error!, /not confirmed yet/);
+  assert.ok(polls >= 2, `polled ${polls} times`);
+});
+
+test("a transaction whose blockhash expired unconfirmed is reported as failed", async () => {
+  const rpc = fakeRpc();
+  rpc.getSignatureStatuses = async () => ({ context: { slot: 1 }, value: [null] });
+  rpc.getBlockHeight = async () => 101; // lastValidBlockHeight is 100
+  const r = await submitAttestation(rpc as never, attesterKp, await att(), {
+    programId: PROGRAM_ID,
+    fallbackUsdcMint: DEVNET_USDC_MINT,
+    confirmTimeoutMs: 5_000,
+    pollMs: 1,
+  });
+  assert.equal(r.status, "failed");
+  assert.match(r.error!, /expired/);
   assert.ok(r.signature);
 });

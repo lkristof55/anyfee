@@ -16,7 +16,8 @@ export type SubmitConnection = Pick<
   | "getMultipleAccountsInfo"
   | "getMinimumBalanceForRentExemption"
   | "sendRawTransaction"
-  | "confirmTransaction"
+  | "getSignatureStatuses"
+  | "getBlockHeight"
 >;
 
 export interface SubmitResult {
@@ -46,11 +47,37 @@ export function resetSubmitState(): void {
   genesisChecked = null;
 }
 
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Waits for `signature` by polling getSignatureStatuses. No WebSocket subscription (which is what
+ * web3.js's confirmTransaction relies on), so it also works in serverless runtimes such as
+ * Cloudflare Workers. Each poll is one RPC request: keep `pollMs` large enough for the host's
+ * per-request subrequest budget.
+ */
+async function waitForConfirmation(
+  conn: SubmitConnection,
+  signature: string,
+  lastValidBlockHeight: number,
+  timeoutMs: number,
+  pollMs: number,
+): Promise<{ err: unknown } | "timeout" | "expired"> {
+  const deadline = Date.now() + timeoutMs;
+  for (let i = 0; ; i++) {
+    await sleep(i === 0 ? Math.min(pollMs, 500) : pollMs);
+    const s = (await conn.getSignatureStatuses([signature])).value[0];
+    if (s?.err) return { err: s.err };
+    if (s && (s.confirmationStatus === "confirmed" || s.confirmationStatus === "finalized")) return { err: null };
+    if (Date.now() >= deadline) return "timeout";
+    if (i % 4 === 3 && (await conn.getBlockHeight("confirmed")) > lastValidBlockHeight) return "expired";
+  }
+}
+
 export async function submitAttestation(
   conn: SubmitConnection,
   feePayer: Keypair,
   a: AttestationJson,
-  opts: { programId: PublicKey; fallbackUsdcMint: PublicKey; confirmTimeoutMs?: number },
+  opts: { programId: PublicKey; fallbackUsdcMint: PublicKey; confirmTimeoutMs?: number; pollMs?: number },
 ): Promise<SubmitResult> {
   const base = { platform: a.platform, id: a.id };
   try {
@@ -70,14 +97,12 @@ export async function submitAttestation(
     tx.feePayer = feePayer.publicKey;
     tx.sign(feePayer);
     const signature = await conn.sendRawTransaction(tx.serialize(), { preflightCommitment: "confirmed" });
-    const confirm = conn.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
-    confirm.catch(() => {}); // a late rejection after the timeout must not become unhandled
-    const timeout = new Promise<"timeout">((r) => setTimeout(() => r("timeout"), opts.confirmTimeoutMs ?? 20_000).unref?.());
-    const res = await Promise.race([confirm, timeout]);
+    const res = await waitForConfirmation(conn, signature, lastValidBlockHeight, opts.confirmTimeoutMs ?? 20_000, opts.pollMs ?? 1_500);
     if (res === "timeout") return { ...base, status: "sent", signature, error: "not confirmed yet; check the signature on an explorer" };
-    if (res.value.err) {
-      const pe = describeProgramError(res.value.err);
-      return { ...base, status: "failed", signature, error: pe ? `${pe.name}: ${pe.msg}` : `transaction failed: ${JSON.stringify(res.value.err)}` };
+    if (res === "expired") return { ...base, status: "failed", signature, error: "the transaction expired before it was confirmed; run the claim again" };
+    if (res.err) {
+      const pe = describeProgramError(res.err);
+      return { ...base, status: "failed", signature, error: pe ? `${pe.name}: ${pe.msg}` : `transaction failed: ${JSON.stringify(res.err)}` };
     }
     return { ...base, status: "sent", signature };
   } catch (e) {
