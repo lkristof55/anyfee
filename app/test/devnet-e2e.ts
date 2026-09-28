@@ -31,7 +31,10 @@ const shots = join(appDir, "test", "screenshots");
 const RPC = process.env.RPC_URL;
 if (!RPC) throw new Error("set RPC_URL (devnet)");
 const PORT = Number(process.env.E2E_PORT ?? 8799);
-const BASE = `http://127.0.0.1:${PORT}`;
+// E2E_BASE_URL=https://app.anyfee.workers.dev drives a deployed site instead of a local build
+// (its attester must be the devnet attester in keys/attester-devnet.json).
+const REMOTE = process.env.E2E_BASE_URL?.replace(/\/+$/, "");
+const BASE = REMOTE ?? `http://127.0.0.1:${PORT}`;
 const DEVNET_GENESIS = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 const FUNDING_CAP = 50_000_000; // 0.05 SOL, all runs together
 
@@ -68,16 +71,16 @@ const ok = (cond: unknown, what: string) => {
 const startBalance = await conn.getBalance(wallet.publicKey);
 
 // ---- build and serve ---------------------------------------------------------------------------
-await build({ log: true });
-const server = spawn(process.execPath, [join(appDir, "server/dev.ts"), "--no-build"], {
+if (!REMOTE) await build({ log: true });
+const server = REMOTE ? null : spawn(process.execPath, [join(appDir, "server/dev.ts"), "--no-build"], {
   env: { ...process.env, PORT: String(PORT), ATTESTER_SECRET_KEY_FILE: join(root, "keys/attester-devnet.json") },
   stdio: ["ignore", "pipe", "pipe"],
 });
 let serverLog = "";
-server.stdout.on("data", (d) => (serverLog += d));
-server.stderr.on("data", (d) => (serverLog += d));
+server?.stdout.on("data", (d) => (serverLog += d));
+server?.stderr.on("data", (d) => (serverLog += d));
 const stopServer = () => {
-  if (server.exitCode === null) server.kill("SIGTERM");
+  if (server && server.exitCode === null) server.kill("SIGTERM");
 };
 process.on("exit", stopServer);
 for (let i = 0; ; i++) {
@@ -89,7 +92,7 @@ for (let i = 0; ; i++) {
   if (i > 60) throw new Error(`server did not start:\n${serverLog}`);
   await new Promise((r) => setTimeout(r, 250));
 }
-log(`site + api on ${BASE} (pid ${server.pid})`);
+log(REMOTE ? `site + api on ${BASE} (deployed)` : `site + api on ${BASE} (pid ${server!.pid})`);
 
 const { chromium } = await loadPlaywright();
 const browser = await chromium.launch({ args: CHROMIUM_ARGS });
